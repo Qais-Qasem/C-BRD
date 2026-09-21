@@ -1,0 +1,39 @@
+
+
+--- VERSION ID: 09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2 ---
+
+[TARGET] Block Index: 46, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-47
+Text: Michigan State University policy requires students to be “logged in” during the first two weeks of the semester. In addition, students must be logged in for at least 85 percent of the Modules. Excessive absenteeism will result in your withdrawal from the course. Any student who has not logged into a course during the first two weeks of classes may be administratively withdrawn from class. If you miss class and cannot turn in assignments on time, you must communicate with the professor.
+
+[TARGET] Block Index: 48, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-49
+Text: You are required to participate in the weekly class discussion. Note that it is the quality—not the quantity—of your participation that matters. Each discussion has a minimum 500 word word-count and must cite references. Students must engage in the discussions by responding to at least two of your classmates postings. You are also encouraged to ask questions in each discussion forum and engage with our esteemed content experts. Rarely in your professional career will you have the opportunity to engage with this caliber of experts willing to help you learn new content.
+
+[TARGET] Block Index: 50, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-51
+Text: Most modules will contain a reading assignment, a FSVP book exercise/assignment, a discussion and a video lecture. Details on the exercises are found within the applicable modules. The lectures overlap with the readings; however, the lectures do not replace the readings; rather, they clarify specific points of the law/regulations or offer insight. Each assignment is due on Sunday by 11:59pm EDT. It is hoped that you will complete them earlier in the week. If for any valid reason you need an extension, please email me directly. Your priorities should be family, work, and then school.  We at IFLR understand that sometimes there are not enough hours in the day. Please let me know if you are struggling with the course materials or formats.
+
+[TARGET] Block Index: 52, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-53
+Text: All written assignments and discussions are expected to be of professional quality. They will be graded for accuracy and substance. Written references in APA format are required for every document you prepare. No late work will be accepted without prior approval. No make-up dates will be given except for exceptional circumstances.
+
+[TARGET] Block Index: 62, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-63
+Text: Written references in APA format are required for every document you prepare.
+
+[TARGET] Block Index: 71, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-73
+Text: Due to the nature of the course and guest instructor interaction, some assignments will not be accepted late unless you have previously been granted an extension- (SO PLEASE COMMUNICATE BEFORE THINGS ARE DUE!). These will include any interaction with guest instructors in a discussion forum. If you know of a prexisiting conflict such as a planned vacation or event, please email Professor Haskell in advance.
+
+[TARGET] Block Index: 73, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-75
+Text: You are required to communicate for academic matters through D2L course mail, not through other email. Questions about any aspect of the course or how to best prepare for quizzes, please email Professor Haskell.
+
+[TARGET] Block Index: 76, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-78
+Text: Plagiarism, cheating, and other forms of academic misconduct are serious issues which are not permitted at Michigan State University. Plagiarism happens any time you take an image, idea, or phrase from another source without citing it, and is defined further here: https://ombud.msu.edu/academic-integrity/plagiarism-policy.html. Citations are needed for more than quotations; ideas taken from outside sources must be cited. If you have questions about this for a particular course, you must talk to your instructor. All written assignments may be checked for plagiarism using plagiarism-detecting software. Students who violate academic integrity in any way may receive a penalty grade, including but not limited to a failing grade on the assignment or in the course, at the discretion of the instructor. Note: All acts of academic dishonesty will be recorded in your electronic student record.
+
+[TARGET] Block Index: 77, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-79
+Text: Unless authorized by your instructor, you are expected to complete all course assignments, including course assignments and class discussions, without assistance from external help. You are expected to develop original work for this course; therefore, you may not submit coursework you completed for another course to satisfy the requirements for this course. If your instructor believes you have committed an act of academic misconduct, s/he will strictly follow MSU’s Integrity of Scholarship and Grades policy, described here: https://reg.msu.edu/AcademicPrograms/Print.aspx?Section=534
+
+[TARGET] Block Index: 89, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-91
+Text: (4) It is the responsibility of those students who need to be absent to inform their instructor at least two weeks before the holiday, make arrangements in advance with their instructors, and to catch up on any material discussed and assignments given during that class period. Accommodations must never fundamentally alter an essential requirement of the course or academic program.
+
+
+--- SEARCHING FOR MODULE MA-324-01 SUBSTANTIVE BLOCKS ---
+
+[CANDIDATE] Block Index: 23, BlockId: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-23
+Text: Once the module is posted, it will remain online for the entire semester. However, instructors will not actively check completed modules or respond to questions if posted late. In addition, students are not expected to keep up with the discussion postings in past, completed modules.  If you have questions, please contact me at haskel14@msu.edu.

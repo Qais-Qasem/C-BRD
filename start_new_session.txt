@@ -1,0 +1,203 @@
+6958 app.post("/api/case-room/sessions/start-new", async (req: any, res: any) => {
+6959   try {
+6960     let verifiedUser = { uid: "MBR-001", email: "sbaydoun1@yahoo.com", role: req.body.actingRole || "ACTIVE_MEMBER", name: "Husni Hasan" };
+6961     const authHeader = req.headers.authorization || req.headers.Authorization;
+6962     if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+6963       const token = authHeader.split("Bearer ")[1]?.trim();
+6964       if (token) {
+6965         const verified = await verifyFirebaseIdToken(token);
+6966         if (verified) {
+6967           verifiedUser = { 
+6968             uid: verified.uid, 
+6969             email: verified.email, 
+6970             role: verified.email === "husni.alashqar@gmail.com" ? "HUSNI_SUPERVISOR" : (req.body.actingRole || "ACTIVE_MEMBER"),
+6971             name: verified.email === "husni.alashqar@gmail.com" ? "Husni Hasan" : "Samar Baydoun"
+6972           };
+6973         }
+6974       }
+6975     }
+6976 
+6977     const isSupervisorOrOwner = 
+6978       verifiedUser.role === "HUSNI_SUPERVISOR" || 
+6979       verifiedUser.role === "PLATFORM_OWNER" || 
+6980       verifiedUser.role === "LEAD_AUDITOR" ||
+6981       req.body.actingRole === "HUSNI_SUPERVISOR" ||
+6982       verifiedUser.uid === "MBR-002" ||
+6983       verifiedUser.email === "husni.alashqar@gmail.com";
+6984 
+6985     if (!isSupervisorOrOwner) {
+6986       return res.status(403).json({ 
+6987         error: "Access Denied: Only Husni (Supervisor / Owner) or Lead Auditor can start a new case session." 
+6988       });
+6989     }
+6990 
+6991     const {
+6992       projectId = "PRJ-324",
+6993       moduleId = "MA-324-01",
+6994       caseId = "CASE-LEVANT-01",
+6995       purpose = "PILOT_V1"
+6996     } = req.body;
+6997 
+6998     const db = getDb();
+6999     const nowIso = new Date().toISOString();
+7000 
+7001     // 1. Find and archive existing active sessions without deleting historical data
+7002     const sessDocs = await fetchCollectionDocs("case_sessions");
+7003     const activeSessions = sessDocs.filter((s: any) => 
+7004       (s.caseId === caseId || (s.projectId === projectId && s.moduleId === moduleId)) && 
+7005       s.status === "ACTIVE"
+7006     );
+7007 
+7008     let oldSessionId = activeSessions[0]?.id || `SESS-${caseId}-${projectId}-${moduleId}`;
+7009     for (const s of activeSessions) {
+7010       const archivedDoc = {
+7011         ...s,
+7012         status: "ARCHIVED",
+7013         archivedAt: nowIso,
+7014         archivedBy: verifiedUser.email || verifiedUser.name || "SUPERVISOR",
+7015         archivedReason: `NEW_SESSION_STARTED_${purpose}`,
+7016         updatedAt: nowIso
+7017       };
+7018       getStoreCollection("case_sessions").set(s.id, archivedDoc);
+7019       if (db) {
+7020         try {
+7021           await setDoc(doc(db, "case_sessions", s.id), archivedDoc, { merge: true });
+7022         } catch (e) {
+7023           console.warn("[Firestore] Archive session warning:", e);
+7024         }
+7025       }
+7026     }
+7027 
+7028     // 2. Generate new unique session ID
+7029     const uniqueSuffix = Date.now().toString().slice(-6);
+7030     const newSessionId = `SESS-${caseId}-PILOT-V1-${uniqueSuffix}`;
+7031 
+7032     // 3. Create canonical opening message for new session
+7033     let activeCase = getStoreCollection("consulting_cases").get(caseId);
+7034     if (!activeCase && db) {
+7035       try {
+7036         const storedCases = await fetchCollectionDocs("consulting_cases");
+7037         activeCase = storedCases.find((c: any) => c.caseId === caseId);
+7038       } catch (e) {
+7039         console.warn("Could not fetch activeCase:", e);
+7040       }
+7041     }
+7042     const clientCompanyName = activeCase?.virtualCompanyName || activeCase?.companyName || "Levant Culinary Traditions Corp";
+7043     const openingMsgId = `MSG-INIT-PILOT-${uniqueSuffix}`;
+7044     const openingMsg: any = {
+7045       id: openingMsgId,
+7046       roomId: `ROOM-${projectId}-${moduleId}`,
+7047       projectId,
+7048       moduleId,
+7049       caseId,
+7050       sessionId: newSessionId,
+7051       channel: "CLIENT_ENGAGEMENT",
+7052       senderId: "PER-01",
+7053       senderName: "Elena Rostova",
+7054       senderRole: "CLIENT_EXEC",
+7055       senderTeam: "CLIENT_TEAM",
+7056       text: `Hello C-Bridge team. Thank you for meeting with us today. We at ${clientCompanyName} import Mediterranean specialty foods (extra virgin olive oil, artisanal halva, za'atar seasoning blends, and sesame tahini) into the United States and received an FDA inquiry regarding our FSVP obligations. We need your consulting guidance to understand our statutory responsibilities and make sure our supply chain is compliant.`,
+7057       messageType: "CLIENT_ANSWER",
+7058       messagePurpose: "INITIAL_CLIENT_OPENING",
+7059       status: "ACTIVE",
+7060       auditStatus: "CANONICAL_INITIAL_OPENING",
+7061       isDuplicate: false,
+7062       active: true,
+7063       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+7064       isoTimestamp: nowIso,
+7065       consultingCategory: "SCOPE"
+7066     };
+7067     getStoreCollection("case_messages").set(openingMsg.id, openingMsg);
+7068     if (db) {
+7069       try {
+7070         await setDoc(doc(db, "case_messages", openingMsg.id), openingMsg);
+7071       } catch (e) {
+7072         console.warn("[Firestore] case_messages new session opening write warning:", e);
+7073       }
+7074     }
+7075 
+7076     // 4. Create new active session document
+7077     const newSessionDoc = {
+7078       id: newSessionId,
+7079       caseId,
+7080       projectId,
+7081       moduleId,
+7082       roomId: `ROOM-${projectId}-${moduleId}`,
+7083       clientName: clientCompanyName,
+7084       status: "ACTIVE",
+7085       purpose,
+7086       classification: purpose,
+7087       startedAt: nowIso,
+7088       updatedAt: nowIso,
+7089       activeHumanRole: "SAMAR_CONSULTANT",
+7090       openingMessageId: openingMsgId,
+7091       messages: [openingMsg]
+7092     };
+7093     getStoreCollection("case_sessions").set(newSessionId, newSessionDoc);
+7094     if (db) {
+7095       try {
+7096         await setDoc(doc(db, "case_sessions", newSessionId), newSessionDoc);
+7097       } catch (e) {
+7098         console.warn("[Firestore] new session write warning:", e);
+7099       }
+7100     }
+7101 
+7102     // 5. Update workflow state pointer
+7103     const wfDocs = await fetchCollectionDocs("module_workflow_states");
+7104     for (const wf of wfDocs) {
+7105       if (wf.projectId === projectId && wf.moduleId === moduleId) {
+7106         const updatedWf = {
+7107           ...wf,
+7108           activeSessionId: newSessionId,
+7109           acceptedCaseId: caseId,
+7110           updatedAt: nowIso
+7111         };
+7112         getStoreCollection("module_workflow_states").set(wf.id, updatedWf);
+7113         if (db) {
+7114           try {
+7115             await setDoc(doc(db, "module_workflow_states", wf.id), updatedWf, { merge: true });
+7116           } catch (e) {
+7117             console.warn("[Firestore] update workflow state activeSessionId warning:", e);
+7118           }
+7119         }
+7120       }
+7121     }
+7122 
+7123     // 6. Audit log entry
+7124     const auditId = `AUD-SESS-${uniqueSuffix}`;
+7125     const auditEntry = {
+7126       id: auditId,
+7127       projectId,
+7128       moduleId,
+7129       caseId,
+7130       sessionId: newSessionId,
+7131       timestamp: nowIso,
+7132       action: "SESSION_RESTARTED",
+7133       actingRole: verifiedUser.role || "HUSNI_SUPERVISOR",
+7134       details: {
+7135         oldSessionId,
+7136         newSessionId,
+7137         purpose,
+7138         initiatedBy: verifiedUser.email || verifiedUser.name
+7139       }
+7140     };
+7141     getStoreCollection("case_audit_logs").set(auditId, auditEntry);
+7142     if (db) {
+7143       try {
+7144         await setDoc(doc(db, "case_audit_logs", auditId), auditEntry);
+7145       } catch (e) {
+7146         console.warn("[Firestore] Session restart audit log warning:", e);
+7147       }
+7148     }
+7149 
+7150     return res.json({
+7151       success: true,
+7152       oldSessionId,
+7153       newSessionId,
+7154       session: newSessionDoc
+7155     });
+7156   } catch (err: any) {
+7157     console.error("Start new session error:", err);
+7158     res.status(500).json({ error: "Failed to start new session: " + err.message });
+7159   }
+7160 });

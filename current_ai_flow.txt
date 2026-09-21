@@ -1,0 +1,161 @@
+    if (channel === "CLIENT_ENGAGEMENT" && !isClientRole) {
+      let clientReplyText = "";
+      const lower = (messageBodyText || "").toLowerCase();
+      let requestedDocTypes: Array<'MASTER_PURCHASE_AGREEMENT' | 'CBP_ENTRY_SUMMARY_7501' | 'FDA_ACE_FSVP_ENTRY_DATA' | 'COMMERCIAL_INVOICE'> = [];
+
+      // Detect if user is asking for documents, contracts, entry summaries, or invoices
+      // Phase 3A: No longer using regex for attachment routing here. We will use a dedicated resolver below.
+
+      const clientMsgId = `MSG-CLI-${Date.now().toString().slice(-6)}`;
+      if (ai) {
+        try {
+
+          // Fetch conversation history
+          const allMsgs = await fetchCollectionDocs("case_messages");
+          const sessionMsgs = allMsgs
+            .filter((m: any) => m.sessionId === resolvedSessionId && m.channel === channel)
+            .sort((a: any, b: any) => {
+               const tA = new Date(a.isoTimestamp || a.createdAt || 0).getTime();
+               const tB = new Date(b.isoTimestamp || b.createdAt || 0).getTime();
+               return tA - tB;
+            });
+            
+          const chatHistory = sessionMsgs.map((m: any) => {
+            const content = m.text !== undefined ? m.text : (m.bodyText !== undefined ? m.bodyText : "");
+            if (!content) return null;
+            return `[${m.senderRole || "Unknown"}] ${m.senderName || "Unknown"}: ${content}`;
+          }).filter(Boolean).join("\n");
+          
+          // Fetch case assertions
+          const allAssertions = await fetchCollectionDocs("case_assertions");
+          const sessionAssertions = allAssertions.filter((a: any) => a.sessionId === resolvedSessionId);
+          const assertionHistory = sessionAssertions.map((a: any) =>
+            `[${a.createdAt}] [${a.status}] ${a.personaId} asserted: ${a.value}`
+          ).join("\n");
+
+          let caseContextBlock = "";
+          const migrationResult = migrateToStructuredWorld(activeCase);
+          if (migrationResult.status !== "COMPLETE" || !migrationResult.world) {
+            return res.status(400).json({ error: "CASE_WORLD_INCOMPLETE", details: "Legacy narrative case data cannot be used for substantive reasoning without a structured Case World migration. Cannot proceed with unstructured scenario spoilers.", migrationGap: migrationResult.gap });
+          } else {
+            const compiler = new PersonaContextCompiler(migrationResult.world);
+            caseContextBlock = compiler.compileForPersona(senderName || "Unknown", "CLIENT_EXEC");
+          }
+
+          const clientPrompt = `
+You are the Virtual Client acting as the executive team (e.g. Elena Rostova / Marco Bellini) of ${activeCase?.virtualCompanyName || activeCase?.companyName || "the company"}.
+
+${caseContextBlock}
+
+SESSION MEMORY (Material Assertions & Corrections):
+${assertionHistory || "No prior material assertions recorded in this session."}
+
+ACTIVE SESSION CONVERSATION HISTORY:
+${chatHistory}
+
+NEW INCOMING MESSAGE from ${senderName || 'Samar'}:
+"${messageBodyText}"
+
+${attachmentBriefing}
+
+Available simulated training documents to attach if relevant: MASTER_PURCHASE_AGREEMENT, CBP_ENTRY_SUMMARY_7501, FDA_ACE_FSVP_ENTRY_DATA, COMMERCIAL_INVOICE.
+
+CRITICAL INSTRUCTION:
+Do not introduce new concrete case facts merely because they are plausible. If information is not present in authorized canonical persona knowledge, active-session conversation, or permitted persona belief state, do not state it as established fact. Use uncertainty or lack of knowledge where appropriate.
+Return a JSON object strictly conforming to this schema:
+{
+  "speaker": "Elena Rostova" | "Marco Bellini" | "Elena Rostova & Marco Bellini",
+  "text": "Your professional reply. Answer naturally, provide enough detail to respond accurately, remain concise when the question is simple, and provide additional detail when required to preserve factual consistency.",
+  "attachDocuments": ["MASTER_PURCHASE_AGREEMENT"] // optional list of document types to attach
+}
+`;
+
+          console.log("[CLIENT_EXEC_TRACE]", JSON.stringify({
+            model: process.env.CLIENT_SIMULATION_MODEL || process.env.PREMIUM_REASONING_MODEL || "gemini-3.1-pro-preview",
+            caseId: activeCase.id || resolvedCaseId,
+            sessionId: resolvedSessionId,
+            personaId: senderName || 'Samar',
+            structuredEntitiesCount: migrationResult.world ? migrationResult.world.entities.length : 0,
+            structuredRelationshipsCount: migrationResult.world ? migrationResult.world.relationships.length : 0,
+            structuredFactsCount: migrationResult.world ? migrationResult.world.facts.length : 0,
+            personaVisibleFactsCount: migrationResult.world ? migrationResult.world.facts.filter(f => f.knowledgePolicy !== "HIDDEN_SCENARIO" && f.knowledgePolicy !== "INTERNAL_DIAGNOSTIC").length : 0,
+            hiddenFactsExcludedCount: migrationResult.world ? migrationResult.world.facts.filter(f => f.knowledgePolicy === "HIDDEN_SCENARIO").length : 0,
+            legacyNarrativeUsedAsAuthority: false,
+            sessionAssertionCount: sessionAssertions.length,
+            contextBuildResult: migrationResult.world ? "SUCCESS" : "CASE_WORLD_INCOMPLETE",
+            canonicalContextPresent: !!activeCase,
+            personaKnowledgeContextPresent: !!migrationResult.world,
+            contextResolutionFailure: !migrationResult.world,
+            migrationGap: migrationResult.gap
+          }));
+          const result = await executeGovernedModelCall({
+            aiClient: ai,
+            purpose: "CLIENT_SIMULATION",
+            contents: clientPrompt,
+            config: {
+              responseMimeType: "application/json"
+            },
+            projectId,
+            moduleId,
+            caseId: activeCase.id || resolvedCaseId,
+            memberId: senderName || 'Samar',
+            sessionId
+          });
+
+          if (result.success && result.rawText) {
+            try {
+              const parsed = JSON.parse(result.rawText.trim());
+              if (parsed.text) clientReplyText = parsed.text.trim();
+              if (Array.isArray(parsed.attachDocuments) && parsed.attachDocuments.length > 0) {
+                parsed.attachDocuments.forEach((docType: any) => {
+                  if (['MASTER_PURCHASE_AGREEMENT', 'CBP_ENTRY_SUMMARY_7501', 'FDA_ACE_FSVP_ENTRY_DATA', 'COMMERCIAL_INVOICE'].includes(docType) && !requestedDocTypes.includes(docType)) {
+                    requestedDocTypes.push(docType);
+                  }
+                });
+              }
+            } catch (pErr) {
+              clientReplyText = result.rawText.trim();
+            }
+            
+            // Asynchronously extract assertions
+            extractAndStoreAssertions({
+              aiClient: ai,
+              projectId,
+              moduleId,
+              caseId: activeCase.id || resolvedCaseId,
+              sessionId: resolvedSessionId,
+              messageId: clientMsgId,
+              speaker: (() => { try { return JSON.parse(result.rawText.trim()).speaker || 'Client'; } catch { return 'Client'; } })(),
+              text: clientReplyText,
+              priorAssertions: sessionAssertions
+            }).catch(err => console.warn("Failed to extract assertions:", err));
+          }
+        } catch (e) {
+          console.warn("Gemini client response generation failed:", e);
+        }
+      }
+
+      const createdAttachments: any[] = [];
+
+      const caseFacts = {
+        companyName: activeCase.virtualCompanyName || activeCase.companyName || "Levant Culinary Traditions Corp",
+
+        headquarters: "Chicago, IL",
+        facilityLocations: ["Chicago, IL", "Newark, NJ"],
+        commodities: (activeCase.products || []).map((p: any) => p.name || p.productName).length > 0 ? activeCase.products.map((p: any) => p.name || p.productName) : [
+          "Cold-Pressed Extra Virgin Olive Oil",
+          "Artisanal Sesame Tahini",
+          "Halva Confections",
+          "Artisanal Za'atar Seasonings"
+        ],
+        ein: "36-9284102",
+        duns: "08-392-1048",
+        supplierName: "Al-Arz Cedar Olive Press & Mill",
+        supplierCountry: "Lebanon",
+        portOfEntry: "Port of Newark / New York (Port Code: 4601)",
+        brokerName: "Trans-Atlantic Customs Clearance Services LLC",
+        brokerFilerCode: "9B2-849201",
+        entryNumber: "750-4829103-8",
+        incotermsRule: "FOB"
+      };
+

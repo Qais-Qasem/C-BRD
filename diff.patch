@@ -1,0 +1,794 @@
+--- server.ts.bak	2026-08-28 11:23:48.364757657 +0000
++++ server.ts	2026-08-28 11:23:48.418376799 +0000
+@@ -1,4 +1,6 @@
++import { buildCanonicalModuleBundle } from "./server/studyModuleBundle.js";
+ import { PersonaContextCompiler, migrateToStructuredWorld } from "./server/contextCompiler.ts";
++import { validateTopicAgainstRequirements } from "./server/studyModuleAuthority.ts";
+ import express from "express";
+ import path from "path";
+ import { createServer as createViteServer } from "vite";
+@@ -2677,7 +2679,7 @@
+ // Real Source File / Document Analysis Endpoint
+ app.post("/api/analyze-source-file", async (req, res) => {
+   try {
+-    const { fileData, fileName, mimeType, sourceType, sourceTitle, userNotes, textContent, attachmentMode } = req.body;
++    const { fileData, fileName, mimeType, sourceType, sourceTitle, userNotes, textContent, attachmentMode, projectId, logicalInputId, logicalSourceId } = req.body;
+ 
+     const ai = getGeminiClient();
+     if (!ai) {
+@@ -2690,6 +2692,7 @@
+     const parts: any[] = [];
+     let processingMethod = "DIRECT TEXT ANALYSIS";
+     let documentStructureSummary = "";
++    let returnedSourceVersionId = null;
+ 
+     if (attachmentMode === 'UPLOAD FILE') {
+       if (!fileData || !mimeType) {
+@@ -2698,7 +2701,6 @@
+           error: "FILE ANALYSIS FAILED: Actual file content was not provided."
+         });
+       }
+-
+       const cleanBase64 = fileData.includes(",") ? fileData.split(",")[1] : fileData;
+       const lowerName = (fileName || '').toLowerCase();
+       const lowerMime = (mimeType || '').toLowerCase();
+@@ -2707,27 +2709,37 @@
+                      lowerMime.includes('msword') ||
+                      lowerName.endsWith('.docx') ||
+                      lowerName.endsWith('.doc');
+-
+       const isPdf = lowerMime === 'application/pdf' || lowerName.endsWith('.pdf');
+       const isTxt = lowerMime === 'text/plain' || lowerName.endsWith('.txt');
+       const isImage = lowerMime.startsWith('image/') || lowerName.endsWith('.png') || lowerName.endsWith('.jpg') || lowerName.endsWith('.jpeg');
+ 
++      let fileBuffer;
++      try {
++        fileBuffer = Buffer.from(cleanBase64, 'base64');
++      } catch (e) {
++        return res.json({ success: false, error: "FILE ANALYSIS FAILED: Invalid base64 encoding." });
++      }
++
++      if (fileBuffer.length === 0) {
++        return res.json({ success: false, error: "FILE ANALYSIS FAILED: The uploaded file is empty." });
++      }
++
++      const fileHash = crypto.createHash("sha256").update(fileBuffer).digest("hex");
++      const sourceVersionId = fileHash;
++      returnedSourceVersionId = sourceVersionId;
++
++      let preLlmBlocks: any[] = [];
++      let extractionMethod = "NONE";
++
+       if (isDocx) {
+         processingMethod = "DOCX CONTENT EXTRACTION";
++        extractionMethod = "MAMMOTH_DOCX_HTML_BLOCKS_V1";
+         try {
+-          const fileBuffer = Buffer.from(cleanBase64, 'base64');
+-          if (fileBuffer.length === 0) {
+-            return res.json({
+-              success: false,
+-              error: "WORD DOCUMENT PROCESSING FAILED: The uploaded Word file buffer is empty."
+-            });
+-          }
+-
+           // Extract raw text and HTML structure from DOCX
+           const rawResult = await mammoth.extractRawText({ buffer: fileBuffer });
+           const htmlResult = await mammoth.convertToHtml({ buffer: fileBuffer });
+-
+           const extractedText = (rawResult.value || '').trim();
++
+           if (!extractedText) {
+             return res.json({
+               success: false,
+@@ -2745,16 +2757,31 @@
+ 
+           documentStructureSummary = `Extracted ${paragraphs.length} paragraphs (${wordCount} words)${headings.length > 0 ? `, Headings: [${headings.slice(0, 5).join('; ')}]` : ''}${hasTables ? ', Tables detected' : ''}${hasLinks ? ', Hyperlinks detected' : ''}.`;
+ 
+-          const docxPayload = `
+-WORD DOCUMENT CONTENT EXTRACTION (Source: "${fileName || 'Document.docx'}"):
++          const blockMatches = [...htmlContent.matchAll(/<(h[1-6]|p|li|table)[^>]*>([\s\S]*?)<\/\1>/gi)];
++          preLlmBlocks = blockMatches.map((m, idx) => {
++            const tag = m[1].toLowerCase();
++            const innerHtml = m[2];
++            const text = innerHtml.replace(/<[^>]+>/g, '').trim();
++            let type = "paragraph";
++            if (tag.startsWith('h')) type = "heading";
++            if (tag === 'li') type = "list_item";
++            if (tag === 'table') type = "table";
++            
++            return {
++               blockId: `BLK-${sourceVersionId}-${idx}`,
++               ordinal: idx,
++               type,
++               rawText: text
++            };
++          }).filter(b => b.rawText.length > 0);
++
++          const docxPayload = `WORD DOCUMENT CONTENT EXTRACTION (Source: "${fileName || 'Document.docx'}"):
+ ==================================================
+ DOCUMENT STRUCTURE SUMMARY:
+ ${documentStructureSummary}
+-
+ FULL EXTRACTED DOCUMENT TEXT:
+ ${extractedText}
+-==================================================
+-`;
++==================================================`;
+           parts.push({ text: docxPayload });
+         } catch (docxErr: any) {
+           console.error("Mammoth DOCX extraction error:", docxErr);
+@@ -2765,6 +2792,7 @@
+         }
+       } else if (isPdf) {
+         processingMethod = "GEMINI DOCUMENT ANALYSIS";
++        extractionMethod = "PDF_DIRECT_STREAM";
+         documentStructureSummary = "Direct PDF Document Stream Ingestion";
+         parts.push({
+           inlineData: {
+@@ -2774,7 +2802,8 @@
+         });
+       } else if (isTxt) {
+         processingMethod = "DIRECT TEXT ANALYSIS";
+-        const textStr = Buffer.from(cleanBase64, 'base64').toString('utf-8');
++        extractionMethod = "TEXT_PARAGRAPH_SPLIT_V1";
++        const textStr = fileBuffer.toString('utf-8');
+         if (!textStr.trim()) {
+           return res.json({
+             success: false,
+@@ -2783,8 +2812,19 @@
+         }
+         documentStructureSummary = `Plain Text Document (${textStr.length} characters)`;
+         parts.push({ text: `ATTACHED FILE CONTENT (${fileName}):\n\n${textStr}` });
++
++        // Phase 1B: Extract deterministic text blocks for TXT
++        const textParagraphs = textStr.split(/\n\s*\n/).map(p => p.trim()).filter(p => p.length > 0);
++        preLlmBlocks = textParagraphs.map((text, idx) => ({
++          blockId: `BLK-${sourceVersionId}-${idx}`,
++          ordinal: idx,
++          type: "paragraph",
++          rawText: text
++        }));
++
+       } else if (isImage) {
+         processingMethod = "MULTIMODAL IMAGE ANALYSIS";
++        extractionMethod = "IMAGE_ANALYSIS";
+         documentStructureSummary = `Image Visual Analysis (${mimeType})`;
+         parts.push({
+           inlineData: {
+@@ -2798,6 +2838,37 @@
+           error: `FILE ANALYSIS FAILED: File format (${mimeType || fileName}) is not supported for processing.`
+         });
+       }
++
++      // Phase 1B: Universal Canonical Source Snapshot
++      const db = getDb();
++      if (db) {
++         let authorityClassification = "SUPPORTING_AUTHORITY";
++         if (sourceType === 'SYLLABUS') authorityClassification = "ACADEMIC_SCOPE_AUTHORITY";
++         else if (sourceType === 'REGULATORY_SOURCE') authorityClassification = "PRIMARY_REGULATORY_AUTHORITY";
++         else if (sourceType === 'COURSE_WORKBOOK') authorityClassification = "PRIMARY_COURSE_SOURCE";
++
++         const canonicalSnapshot = {
++           sourceId: logicalSourceId || `SRC-${sourceVersionId.slice(0,12)}`,
++           projectId: projectId || "PRJ-324",
++           originalFilename: fileName || 'Document',
++           mimeType: mimeType || 'application/octet-stream',
++           fileSize: fileBuffer.length,
++           originalByteSha256: fileHash,
++           sourceVersionId,
++           authorityClassification,
++           extractionMethod,
++           binaryArchivalAvailable: false,
++           preLlmBlocks,
++           blockCount: preLlmBlocks.length,
++           timestamp: new Date().toISOString()
++         };
++         
++         await setDoc(doc(db, "canonical_source_snapshots", sourceVersionId), canonicalSnapshot);
++         
++         if (sourceType === 'SYLLABUS') {
++            await setDoc(doc(db, "canonical_syllabus_current", "PRJ-324"), { currentSourceVersionId: sourceVersionId });
++         }
++      }
+     } else if (attachmentMode === 'PASTE TEXT') {
+       if (!textContent || !textContent.trim()) {
+         return res.json({
+@@ -2995,7 +3066,8 @@
+       processingMethod,
+       documentStructureSummary,
+       analysis: analysisResult,
+-      isProtectedAcademic: isMsuMaterial
++      isProtectedAcademic: isMsuMaterial,
++      sourceVersionId: returnedSourceVersionId
+     });
+ 
+   } catch (err: any) {
+@@ -4243,7 +4315,7 @@
+         memberNotes: "Comprehensive review of 21 CFR 1.500 subparts A through L. Established clear criteria for foreign supplier record verification.",
+         importantQuestions: ["When is an annual onsite audit strictly mandatory under 21 CFR 1.506?"],
+         importantAnswers: ["When a SAHC hazard is present and no alternative audit procedure has been scientifically justified."],
+-        externalReferences: ["21 CFR 1.500 - 1.514", "FDA FSVP Draft Guidance for Industry"],
++        externalReferences: req.body.resolvedSourceReferences || [], // Phase 1B safety correction
+         practicalApplications: "Applied to Global Food Imports LLC virtual client scenario to assess supplier verification compliance.",
+         consultingObservations: ["Importers frequently confuse FDA Registration with FSVP Supplier Verification."],
+         potentialRelevanceToCBridge: "Establishes baseline methodology for C-Bridge FSVP Consulting Service Package."
+@@ -8828,6 +8900,35 @@
+ });
+ 
+ // 2. POST Add Module Study Source (Single)
++
++app.get("/api/module-study/canonical-bundle/:projectId/:moduleId", async (req: any, res: any) => {
++  try {
++    const { projectId, moduleId } = req.params;
++    const db = getDb();
++    
++    let allReqMaps: any[] = [];
++    let allSources: any[] = [];
++    let canonicalSnapshots: any[] = [];
++
++    if (db) {
++      allReqMaps = await fetchCollectionDocs("module_requirements_maps");
++      allSources = await fetchCollectionDocs("module_study_sources");
++      canonicalSnapshots = await fetchCollectionDocs("canonical_source_snapshots");
++    } else {
++      allReqMaps = Array.from(getStoreCollection("module_requirements_maps").values());
++      allSources = Array.from(getStoreCollection("module_study_sources").values());
++      canonicalSnapshots = Array.from(getStoreCollection("canonical_source_snapshots").values());
++    }
++
++    const bundle = buildCanonicalModuleBundle(projectId, moduleId, allReqMaps, allSources, canonicalSnapshots);
++    
++    return res.json({ success: true, bundle });
++  } catch (err: any) {
++    console.error("Canonical bundle error:", err);
++    res.status(500).json({ error: "Failed to build canonical bundle: " + err.message });
++  }
++});
++
+ app.post("/api/module-study/sources", async (req: any, res: any) => {
+   try {
+     const {
+@@ -8853,7 +8954,8 @@
+       applicableModules,
+       currentModuleRelevantSections,
+       sourceAuthorityRank,
+-      moduleSectionMappings
++      moduleSectionMappings,
++      sourceVersionId // Phase 1B: Explicit Source Versioning
+     } = req.body;
+ 
+     if (!title || !sourceType) {
+@@ -8897,6 +8999,7 @@
+       addedAt: nowIso,
+       analysisStatus: "PENDING",
+       auditStatus: "ACTIVE",
++      sourceVersionId: sourceVersionId || "", // Phase 1B
+       isInherited: false,
+       isProtected: false,
+       citationRef: citationRef || "",
+@@ -9139,98 +9242,127 @@
+ app.post("/api/module-study/analyze-sources", async (req: any, res: any) => {
+   try {
+     const { projectId, moduleId, sourceIds, customFocus } = req.body;
+-    const ai = getGeminiClient();
+-    const nowIso = new Date().toISOString();
++    const db = getDb();
++    if (!db) {
++      return res.json({ success: false, status: "STUDY_SYLLABUS_SOURCE_UNAVAILABLE", message: "Database unavailable." });
++    }
+ 
+-    let requirementsMap: any = {
+-      ...BASELINE_MODULE_REQUIREMENTS_MAP,
+-      id: `REQMAP-${Date.now().toString().slice(-6)}`,
+-      projectId: projectId || "PRJ-324",
+-      moduleId: moduleId || "MA-324-01",
+-      status: "DRAFT",
+-      analyzedAt: nowIso,
+-      scopedAnalysisNotice: "Module 1 analysis strictly scoped to Chapter 1 / Section 1 of course-wide sources (FSVP Exercise Workbook) and direct statutory readings (21 CFR 1.500â€“1.502). Later-module content (Chapters 2â€“7: Hazard Analysis, Verification Audits, Recordkeeping, etc.) has been excluded to prevent cross-module contamination."
+-    };
++    let syllabusSnapshot: any = null;
++    const currentDoc = await getDoc(doc(db, "canonical_syllabus_current", projectId || "PRJ-324"));
++    if (currentDoc.exists()) {
++      const { currentSourceVersionId } = currentDoc.data();
++      if (currentSourceVersionId) {
++        const snapDoc = await getDoc(doc(db, "canonical_source_snapshots", currentSourceVersionId));
++        if (snapDoc.exists()) {
++          syllabusSnapshot = snapDoc.data();
++        }
++      }
++    }
+ 
++    if (!syllabusSnapshot || !syllabusSnapshot.preLlmBlocks || syllabusSnapshot.preLlmBlocks.length === 0) {
++      return res.json({
++        success: false,
++        status: "STUDY_SYLLABUS_SOURCE_UNAVAILABLE",
++        message: "Canonical syllabus document extraction is unavailable. Cannot generate deterministic module requirements."
++      });
++    }
++
++    // Prepare blocks for Gemini
++    const blocksInfo = syllabusSnapshot.preLlmBlocks.map((b: any) => `[${b.blockId}] (${b.type}): ${b.rawText}`).join("\n");
++    
++    const ai = getGeminiClient();
++    let generatedRequirements: any[] = [];
+     if (ai) {
+-      try {
+-        const prompt = `
+-You are the C-Bridge Requirements Extraction Engine.
+-Extract a comprehensive, grounded Module Requirements Map for ${moduleId || 'MA-324-01'} in ${projectId || 'PRJ-324'}.
+-Module Focus: MSU Module 1 â€” Foundational FSVP Framework, Statutory Authority & Scope (21 CFR Part 1 Subpart L, Â§ 1.500â€“1.502).
+-
+-STRICT SCOPING & SOURCE AUTHORITY RULES:
+-1. SOURCE AUTHORITY HIERARCHY:
+-   - Level 1: ACADEMIC / REGULATORY ORIGINAL SOURCES (21 CFR Part 1 Subpart L, FD&C Act Â§ 805)
+-   - Level 2: COURSE-WIDE ACADEMIC SOURCES SCOPED TO MODULE 1 (FSVP Participant Manual â€” Chapter 1: Introduction, Scope & Importer Determination, Pages 1â€“38)
+-   - Level 3: MODULE-SPECIFIC SOURCES (MSU Assignment #1 Guidelines)
+-   - Level 4: MEMBER-GENERATED STUDY PACKAGES (Prerequisite package / Member Notes â€” Supporting Context Only; cannot override primary regulatory sources)
+-   - Level 5: AI INTERPRETATION / RECOMMENDATIONS
+-2. CROSS-MODULE CONTAMINATION CONTROL:
+-   - For course-wide participant manuals (e.g. FSVP PARTICIPANT MANUAL FINAL V1.1 PUBLIC VERSION), analyze ONLY Chapter 1 / Section 1 (Foundations, Statutory Scope, Exercises 1.1 & 1.2).
+-   - DO NOT pull in Chapter 2 (Hazard Analysis/SAHC), Chapter 3 (Onsite Audits), Chapter 4 (Modified Requirements), Chapter 5 (Recordkeeping), Chapter 6 (Import Alerts), or Chapter 7 (Capstone) as primary Module 1 requirements.
+-
+-Extract requirements categorized as:
+-- Objectives (regulatory & academic goals)
+-- Required Knowledge Areas
+-- Topics Covered
+-- Required Readings (21 CFR 1.500, 1.501, 1.502, Chapter 1 of Workbook)
+-- Assignments & Tasks (Exercise 1.1, Exercise 1.2, MSU Assignment #1)
+-- Regulatory References & Statutory Citations
+-- Deadlines & Directions
+-- Outstanding Questions & Edge Cases (e.g. Importer of Record vs FSVP Importer discrepancies)
+-
+-For every item, identify its origin:
+-- SOURCE_DERIVED (directly from statute/reading)
+-- MEMBER_PROVIDED (from notes)
+-- HUSNI_DIRECTION (supervisor guidance)
+-- AI_INTERPRETATION (analytical inference)
+-- AI_RECOMMENDATION (suggested practice topic)
++      const prompt = `
++You are C-Bridge AI Requirements Extraction Engine.
++Extract formal Module Requirements for module: ${moduleId}.
++
++You must use the following CANONICAL SYLLABUS BLOCKS.
++${blocksInfo}
++
++For each requirement, provide:
++- "title": A short title
++- "description": Description of the requirement
++- "blockIds": An array of EXACT blockIds from the syllabus blocks above that authorize this requirement.
+ 
+-Return a strict JSON object with:
++Return JSON schema:
+ {
+-  "moduleTitle": "MSU Module 1 â€” Foundational FSVP Framework, Statutory Authority & Scope",
+-  "scopedAnalysisNotice": "Module 1 analysis strictly scoped to Chapter 1 / Section 1 of course-wide sources and direct statutory readings (21 CFR 1.500â€“1.502). Later-module content (Chapters 2â€“7) is excluded to prevent cross-module contamination.",
+   "requirements": [
+-    { "id": "REQ-1", "category": "OBJECTIVE", "title": "Master 21 CFR 1.500 Statutory Importer Definition", "description": "Define and apply statutory criteria for the U.S. owner or consignee with financial interest at entry.", "origin": "SOURCE_DERIVED", "sourceReferences": ["SRC-MA324-01-FDALAW", "SRC-PRJ324-FSVP-WORKBOOK"], "statutoryCitations": ["21 CFR 1.500", "FD&C Act 805"] }
+-  ],
+-  "objectives": [...],
+-  "requiredReadings": [...],
+-  "assignmentsAndTasks": [...],
+-  "regulatoryReferences": [...],
+-  "deadlinesAndDirections": [...],
+-  "outstandingQuestions": [...]
++    {
++       "title": "...",
++       "description": "...",
++       "blockIds": ["BLK-hash-0", "BLK-hash-1"]
++    }
++  ]
+ }
+ `;
+-        const result = await executeGovernedModelCall({
+-          aiClient: ai,
+-          purpose: "DOCUMENT_ANALYSIS",
+-          contents: prompt,
+-          config: { responseMimeType: "application/json" },
+-          projectId: projectId || "PRJ-324",
+-          moduleId: moduleId || "MA-324-01"
+-        });
+-        if (result.success && result.rawText) {
+-          const parsed = JSON.parse(result.rawText.trim());
+-          requirementsMap = {
+-            ...requirementsMap,
+-            ...parsed,
+-            status: "DRAFT",
+-            analyzedAt: nowIso,
+-            modelMetadata: result.metadata
+-          };
+-        }
+-      } catch (e) {
+-        console.warn("AI requirements analysis failed, using baseline:", e);
++      const result = await executeGovernedModelCall({
++        aiClient: ai,
++        purpose: "DOCUMENT_ANALYSIS",
++        contents: prompt,
++        config: { responseMimeType: "application/json" }
++      });
++
++      if (result.success && result.rawText) {
++        const parsed = JSON.parse(result.rawText.trim());
++        generatedRequirements = parsed.requirements || [];
+       }
++    } else {
++       // Fallback mock requirement if Gemini is not available, but properly anchored.
++       generatedRequirements = [
++          {
++             title: "FSVP Importer Definition",
++             description: "Understand FSVP requirements under 21 CFR 1.500",
++             blockIds: [syllabusSnapshot.preLlmBlocks[0].blockId]
++          }
++       ];
+     }
+ 
+-    const db = getDb();
+-    if (db) {
+-      await setDoc(doc(db, "module_requirements_maps", requirementsMap.id), requirementsMap);
++    // Validate blockIds and generate canonical requirement IDs
++    const validBlocks = new Set(syllabusSnapshot.preLlmBlocks.map((b: any) => b.blockId));
++    const requirementsMap: any = {
++      id: `REQ-MAP-${moduleId}-${Date.now()}`,
++      projectId: projectId || "PRJ-324",
++      moduleId: moduleId || "MA-324-01",
++      status: "DRAFT",
++      requirements: [],
++      sourceIds: sourceIds || [],
++      customFocus: customFocus || ""
++    };
++
++    let reqIndex = 1;
++    for (const req of generatedRequirements) {
++      if (!req.blockIds || req.blockIds.length === 0) continue; // Skip if no block authorization
++      const isValid = req.blockIds.every((id: string) => validBlocks.has(id));
++      if (!isValid) continue; // Reject requirement if block doesn't exist
++
++      // Stable ID generation based on module, source version, and block anchors
++      const sortedBlocks = [...req.blockIds].sort().join(",");
++      const reqIdSource = `${moduleId}-${syllabusSnapshot.sourceVersionId}-${sortedBlocks}`;
++      const canonicalReqId = "REQ-" + crypto.createHash("sha256").update(reqIdSource).digest("hex").substring(0, 8).toUpperCase();
++
++      requirementsMap.requirements.push({
++        id: canonicalReqId,
++        moduleId: moduleId || "MA-324-01",
++        title: req.title,
++        description: req.description,
++        provenance: "CANONICAL_SYLLABUS",
++        sourceVersionId: syllabusSnapshot.sourceVersionId,
++        blockAnchors: req.blockIds,
++        reviewStatus: "PENDING_MEMBER_REVIEW"
++      });
++      reqIndex++;
+     }
+ 
+-    return res.json({ success: true, requirementsMap });
++    // Save to Firestore
++    await setDoc(doc(db, "module_requirements_maps", requirementsMap.id), requirementsMap);
++
++    return res.json({
++      success: true,
++      requirementsMap,
++      message: "Generated requirements anchored to canonical syllabus blocks."
++    });
++
+   } catch (err: any) {
+     console.error("Analyze sources error:", err);
+     res.status(500).json({ error: "Failed to analyze sources: " + err.message });
+@@ -9773,30 +9905,56 @@
+ app.post("/api/module-study/generate-topics", async (req: any, res: any) => {
+   try {
+     const { projectId, moduleId, requirementsMapId } = req.body;
+-    const ai = getGeminiClient();
+-    let topics = BASELINE_CONSULTING_PRACTICE_TOPICS;
++    if (!projectId || !moduleId) {
++      return res.status(400).json({ error: "projectId and moduleId are required" });
++    }
+ 
++    let reqMap: any = null;
++    let allReqMaps: any[] = [];
++    const db = getDb();
++    if (db) {
++      allReqMaps = await fetchCollectionDocs("module_requirements_maps");
++      reqMap = allReqMaps.find((m: any) => m.projectId === projectId && m.moduleId === moduleId && (requirementsMapId ? m.id === requirementsMapId : true));
++    } else {
++      allReqMaps = Array.from(getStoreCollection("module_requirements_maps").values());
++      reqMap = getStoreCollection("module_requirements_maps").get(requirementsMapId);
++    }
++    
++    if (!reqMap || reqMap.moduleId !== moduleId || !reqMap.requirements || reqMap.requirements.length === 0) {
++      return res.json({ success: false, status: 'STUDY_MODULE_REQUIREMENTS_UNAVAILABLE' });
++    }
++
++    const ai = getGeminiClient();
++    let topics: any[] = [];
++    
+     if (ai) {
+       try {
++        const canonicalReqsStr = JSON.stringify(reqMap.requirements, null, 2);
+         const prompt = `
+ You are the C-Bridge Consulting Practice Topic Map Generator.
+-Generate 3 distinct, grounded consulting practice topics for Module 1 (${moduleId || 'MA-324-01'}) in ${projectId || 'PRJ-324'}.
+-Module Focus: Foundational FSVP Framework, Statutory Authority & Scope (21 CFR Part 1 Subpart L).
++Generate 3 distinct, grounded consulting practice topics for Module (${moduleId}) in ${projectId}.
++
++CRITICAL RULE: CANONICAL REQUIREMENTS ONLY
++- You are provided with the CANONICAL REQUIREMENTS MAP for this module.
++- You MAY ONLY use requirement IDs that appear in this map.
++- ONLY supply canonical requirement IDs in 'moduleRequirementsCovered'.
++- Classify topics as PRIMARY_MODULE_TOPIC or CROSS_MODULE_REFERENCE.
++- If it covers primarily current module requirements, it is PRIMARY_MODULE_TOPIC.
++- If it is a CROSS_MODULE_REFERENCE, you MUST provide sourceModuleId and sourceRequirementId, and set countsTowardCurrentCompletion = false.
+ 
+-CRITICAL RULE: CROSS-MODULE CONTAMINATION FILTER:
+-- Classify topics clearly as PRIMARY_MODULE_TOPIC (direct 21 CFR 1.500 scope) or CROSS_MODULE_REFERENCE (e.g. hazard analysis belonging to Module 2).
+-- Prevent future module concepts (e.g. detailed hazard analysis, food defense, dietary supplements) from masquerading as primary Module 1 topics.
++CANONICAL REQUIREMENTS MAP:
++${canonicalReqsStr}
+ 
+ Return a JSON array of objects with:
+ [
+   {
+-    "id": "TOPIC-1",
++    "id": "TOPIC-...",
+     "topicName": "...",
+     "whyThisTopicExists": "...",
+-    "moduleObjectivesCovered": ["OBJ-01", "OBJ-02"],
+-    "moduleRequirementsCovered": ["REQ-01", "REQ-02"],
+-    "supportingSources": ["SRC-MA324-01-FDALAW"],
+-    "regulatoryReferences": ["21 CFR 1.500"],
++    "moduleObjectivesCovered": ["OBJ-01"],
++    "moduleRequirementsCovered": ["REQ-ID-1"],
++    "supportingSources": ["SRC-1"],
++    "regulatoryReferences": ["21 CFR..."],
+     "aiInterpretation": "...",
+     "relevanceCategory": "PRIMARY_MODULE_TOPIC",
+     "crossModuleNote": "",
+@@ -9809,27 +9967,50 @@
+           purpose: "DOCUMENT_ANALYSIS",
+           contents: prompt,
+           config: { responseMimeType: "application/json" },
+-          projectId: projectId || "PRJ-324",
+-          moduleId: moduleId || "MA-324-01"
++          projectId,
++          moduleId
+         });
++        
+         if (result.success && result.rawText) {
+           const parsed = JSON.parse(result.rawText.trim());
+           if (Array.isArray(parsed) && parsed.length > 0) {
+-            topics = parsed.map((t: any, idx: number) => ({
+-              ...t,
+-              projectId: projectId || "PRJ-324",
+-              moduleId: moduleId || "MA-324-01",
+-              isSelected: idx === 0,
+-              modelMetadata: result.metadata
+-            }));
++             let validPrimaryTopics = 0;
++             const validatedTopics = [];
++             for (const t of parsed) {
++                if (!Array.isArray(t.moduleRequirementsCovered)) continue;
++
++                const validationResult = validateTopicAgainstRequirements(t, reqMap, moduleId, allReqMaps);
++                if (!validationResult.isValid) {
++                   return res.json({ success: false, status: "STUDY_TOPIC_VALIDATION_FAILED" });
++                }
++                t.countsTowardCurrentCompletion = validationResult.validatedTopic.countsTowardCurrentCompletion;
++                t.countsTowardCurrentAssessment = validationResult.validatedTopic.countsTowardCurrentAssessment;
++                t.isSelected = validationResult.validatedTopic.isSelected;
++
++                validatedTopics.push({
++                  ...t,
++                  projectId,
++                  moduleId,
++                  isSelected: t.isSelected ?? false,
++                  modelMetadata: result.metadata
++                });
++             }
++
++             if (validatedTopics.length > 0) {
++                validatedTopics[0].isSelected = true;
++             }
++             topics = validatedTopics;
+           }
+         }
+       } catch (e) {
+-        console.warn("AI topic generation failed, using baseline:", e);
++        console.warn("AI topic generation failed:", e);
+       }
+     }
+ 
+-    const db = getDb();
++    if (topics.length === 0) {
++       return res.json({ success: false, status: 'STUDY_TOPIC_VALIDATION_FAILED' });
++    }
++
+     if (db) {
+       for (const t of topics) {
+         await setDoc(doc(db, "consulting_practice_topics", t.id), t);
+@@ -9848,13 +10029,44 @@
+   try {
+     const { projectId, moduleId } = req.params;
+     const db = getDb();
+-    let topics = BASELINE_CONSULTING_PRACTICE_TOPICS;
++    let topics: any[] = [];
++    
++    // Check if dev fallback is requested explicitly
++    if (req.query.devFallback === 'true') {
++      return res.json({ success: true, topics: BASELINE_CONSULTING_PRACTICE_TOPICS.map(t => ({...t, isDevFallback: true})) });
++    }
++
++    // Resolve canonical requirements map
++    let reqMap: any = null;
++    if (db) {
++      const maps = await fetchCollectionDocs("module_requirements_maps");
++      reqMap = maps.find((m: any) => m.projectId === projectId && m.moduleId === moduleId);
++    }
++    
++    if (!reqMap || reqMap.moduleId !== moduleId || !reqMap.requirements) {
++      return res.json({ success: false, status: 'STUDY_MODULE_REQUIREMENTS_UNAVAILABLE' });
++    }
+ 
+     if (db) {
+       try {
+         const stored = await fetchCollectionDocs("consulting_practice_topics");
+         const filtered = stored.filter((t: any) => t.projectId === projectId && t.moduleId === moduleId);
+-        if (filtered.length > 0) topics = filtered as any;
++        
++        // Validate each primary topic's requirements against the canonical map
++        const validTopics = filtered.filter((t: any) => {
++          if (t.relevanceCategory === "PRIMARY_MODULE_TOPIC") {
++            if (!t.moduleRequirementsCovered || t.moduleRequirementsCovered.length === 0) return false;
++            for (const reqId of t.moduleRequirementsCovered) {
++              const foundReq = reqMap.requirements.find((r: any) => r.id === reqId);
++              if (!foundReq || foundReq.moduleId !== moduleId) return false;
++            }
++          }
++          return true;
++        });
++
++        if (validTopics.length > 0) {
++          topics = validTopics;
++        }
+       } catch (e) {
+         console.warn("Firestore topics error:", e);
+       }
+@@ -10732,7 +10944,7 @@
+       memberName: "Samar Baydoun",
+       packageTitle: "Module 1 Complete Study Package: FSVP Statutory Authority & Importer Determination",
+       createdAt: nowIso,
+-      sourceReferences: ["SRC-MA324-00-SYLLABUS", "SRC-MA324-01-FDALAW", "SRC-MA324-01-ASSIGN"],
++      sourceReferences: req.body.resolvedSourceReferences || [], // Phase 1B safety correction
+       reviewedRequirementsSummary: "Mastered 21 CFR 1.500 Importer Determination criteria, Customs Broker non-liability rules, and Module 1 scope boundaries.",
+       keyConceptsSynthesized: [
+         "21 CFR 1.500 3-Tier Importer Determination Rule",
+@@ -10858,11 +11070,13 @@
+       }
+     } else {
+       // Ensure canonical PRJ-324 / MA-324-01 binding on existing stored state
+-      if (workflowState.moduleId === "MA-324-01" || workflowState.projectId === "PRJ-FSVP-01" || !workflowState.projectId) {
++      if (!workflowState.projectId) {
+         workflowState.projectId = "PRJ-324";
+         workflowState.projectName = "PRJ-324 â€” MSU Food Import Law & FSVP Learning and Capability Development Project";
+-        workflowState.moduleId = "MA-324-01";
+-        workflowState.moduleTitle = "MSU Module 1 â€” Foundational FSVP Framework, Statutory Authority & Scope";
++        if (!workflowState.moduleId) {
++          workflowState.moduleId = "MA-324-01";
++          workflowState.moduleTitle = "MSU Module 1 â€” Foundational FSVP Framework, Statutory Authority & Scope";
++        }
+         if (workflowState.acceptedCaseId === "CASE-LEVANT-01" || !workflowState.acceptedCaseId || workflowState.acceptedCaseTitle?.includes("Apex")) {
+           workflowState.acceptedCaseId = "CASE-LEVANT-01";
+           workflowState.acceptedCaseClientName = "Levant Culinary Traditions Corp";
+@@ -11049,11 +11263,13 @@
+ 
+     if (position) {
+       // Enforce canonical PRJ-324 binding on existing stored position
+-      if (position.projectId === "PRJ-FSVP-01" || !position.projectId || position.moduleId === "MA-324-01") {
++      if (!position.projectId) {
+         position.projectId = "PRJ-324";
+         position.projectName = "PRJ-324 â€” MSU Food Import Law & FSVP Learning and Capability Development Project";
+-        position.moduleId = "MA-324-01";
+-        position.moduleName = "MSU Module 1 â€” Foundational FSVP Framework, Statutory Authority & Scope";
++        if (!position.moduleId) {
++          position.moduleId = "MA-324-01";
++          position.moduleName = "MSU Module 1 â€” Foundational FSVP Framework, Statutory Authority & Scope";
++        }
+         if (position.caseTitle?.includes("Apex") || !position.caseTitle) {
+           position.caseId = "CASE-LEVANT-01";
+           position.caseTitle = "Levant Culinary Traditions Corp Consulting Case";
+@@ -11515,94 +11731,5 @@
+ app.post("/api/cbridge-ai/coach-file-analysis", async (req: any, res: any) => {
+   try {
+     const {
+-      sessionId,
+-      projectId = "PRJ-324",
+-      moduleId = "MA-324-01",
+-      userRole = "SAMAR_CONSULTANT",
+-      learnerMessage,
+-      activeObjective,
+-      primaryRuleReference
+-    } = req.body;
+-
+-    if (!sessionId || !learnerMessage) {
+-      return res.status(400).json({ error: "sessionId and learnerMessage are required." });
+-    }
+-
+-    const result = await executeCoachDocumentAnalysis({
+-      sessionId,
+-      projectId,
+-      moduleId,
+-      userRole,
+-      learnerMessage,
+-      activeObjective,
+-      primaryRuleReference,
+-      aiClient: getGeminiClient()
+-    });
+-
+-    return res.json({
+-      success: true,
+-      result
+-    });
+-  } catch (err: any) {
+-    console.error("Coach file analysis error:", err);
+-    res.status(500).json({ error: "Failed to execute coach file analysis: " + err.message });
+-  }
+-});
+-
+-// 28. GET Run 10-Test Cross-Project Blind Document Test Suite (TEST A - TEST J)
+-app.get("/api/cbridge-ai/document-intelligence/blind-test-suite", async (req: any, res: any) => {
+-  try {
+-    const testSuiteResult = await runCrossProjectBlindDocumentTestSuite(getGeminiClient());
+-    return res.json({
+-      success: true,
+-      testSuiteResult
+-    });
+-  } catch (err: any) {
+-    console.error("Run blind document test suite error:", err);
+-    res.status(500).json({ error: "Failed to run blind document test suite: " + err.message });
+-  }
+-});
+-
+-// 29. GET Document Intelligence Runtime Observability Diagnostics
+-app.get("/api/cbridge-ai/document-intelligence/diagnostics", (req: any, res: any) => {
+-  try {
+-    const diagnostics = getDocumentIntelligenceDiagnostics();
+-    return res.json({
+-      success: true,
+-      totalLogs: diagnostics.length,
+-      diagnostics
+-    });
+-  } catch (err: any) {
+-    console.error("Get document intelligence diagnostics error:", err);
+-    res.status(500).json({ error: "Failed to get diagnostics: " + err.message });
+-  }
+-});
+-
+-// Vite / Static Files Setup
+-async function startServer() {
+-  try {
+-    await ensureServerAuthenticated();
+-  } catch (authErr) {
+-    console.warn("[Server Auth Setup Warning]:", authErr);
+-  }
+-
+-  if (process.env.NODE_ENV !== "production") {
+-    const vite = await createViteServer({
+-      server: { middlewareMode: true },
+-      appType: "spa",
+-    });
+-    app.use(vite.middlewares);
+-  } else {
+-    const distPath = path.join(process.cwd(), "dist");
+-    app.use(express.static(distPath));
+-    app.get("*", (req, res) => {
+-      res.sendFile(path.join(distPath, "index.html"));
+-    });
+-  }
+-
+-  app.listen(Number(PORT), "0.0.0.0", () => {
+-    console.log(`C-BRIDGE platform running on http://0.0.0.0:${PORT}`);
+-  });
+-}
+-
+-startServer();
++      sessixœÌSËnÛ0¼û+¶BS…À(z±áš=4	ê ×†72™TÉ•ÃĞ¿w)Q®S÷*"¹¯™¥œı¦gÀO+ğøKnœ>,‹Gê¼å%Èçà¬8Bèª
++CX ùØñ^Õ¸€lMİfƒ”UÍ!˜ µ"”ôy,ÕC¥¨Ú‚@ïsÈá˜‚¤¨âSYæ‡9äE&ˆ©Ğ,®³«+X“òkô{ôgó¢õ.R•h÷òæöËõÏë›x·ZAÆİUdœÍFf×:O"ÛÂ,—´E+˜Eå‘›K.ÒéÁLf«Ï©¿b4„”}„ÑºÁåñ»Ó8*}‘âTÛŞÚ¨dhU6Zû‰Jä•d;!)²8xåŸê!_¦€ÊÙ@pwûã'û±,ËåYfcqíè- +åğfˆ7c× l\-Sçc®±58Q:xŒ…úÇvŸvilüí›€oônm'½ãşLÏºfœ»ÁÑ-5>©®!ùìŒ=Í·zÑ"/`ƒç	uÀ×–	F:şKÄä:AÄKi*11Èósíj$1ÿ0g±øSÄ›|9¢tÁÑê¯¦AqÙÄTŸù«ñUni×Ìóÿ»aÎ~  ÿÿ _'CW
+\ No newline at end of file

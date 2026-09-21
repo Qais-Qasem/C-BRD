@@ -1,0 +1,77 @@
+{
+  "id": "ATT-SYNTH-MPA-740364",
+  "documentId": "DOC-MPA-740364",
+  "projectId": "PRJ-324",
+  "moduleId": "MA-324-01",
+  "caseId": "CASE-LEVANT-01",
+  "sessionId": "SESS-MA324-01",
+  "messageId": "MSG-CLI-656049",
+  "channelId": "CLIENT_ENGAGEMENT",
+  "uploadedByMemberId": "PER-01",
+  "activeRole": "CLIENT_EXEC",
+  "originalFileName": "Master_Purchase_Agreement_Executed_Levant_Culinary_Traditions_Corp.pdf",
+  "mimeType": "application/pdf",
+  "fileSize": 5716,
+  "formattedSize": "5.6 KB",
+  "storageReference": "storage://case_synthetic_documents/ATT-SYNTH-MPA-740364",
+  "uploadedAt": "2026-08-16T18:09:00.449Z",
+  "visibilityScope": "CLIENT_FACING",
+  "processingStatus": "READY",
+  "fileCategory": "DOCUMENT",
+  "extractedTextSummary": "Executed Master Commercial Food Supply Agreement between Levant Culinary Traditions Corp (Buyer) and Al-Arz Cedar Olive Press & Mill (Seller). Section 3 establishes FOB [FOREIGN PORT — TO BE VERIFIED] risk-of-loss allocation (on board vessel at foreign port of shipment [PORT TO BE VERIFIED]). Section 4.2 contractually transfers commercial ownership to Buyer upon loading on board, establishing continuous title during maritime transit and at U.S. entry.",
+  "extractedTextSnippet": "Section 4.2 Contractual Title Transfer: \"Commercial title and proprietary ownership of each food shipment transfer unconditionally from Seller to Buyer at the foreign port of shipment at the time the goods are placed on board the vessel and the corresponding Bill of Lading naming Buyer as consignee is issued. Pursuant to this explicit contractual transfer, Buyer maintains full proprietary title and commercial ownership of the goods continuously during international maritime transit and at the moment the merchandise arrives within the customs territory of the United States.\"",
+  "downloadUrl": "/api/case-room/attachments/ATT-SYNTH-MPA-740364/download",
+  "documentType": "MASTER_PURCHASE_AGREEMENT",
+  "title": "Master Purchase Agreement (Executed) — Levant Culinary Traditions Corp",
+  "synthetic": true,
+  "trainingOnly": true,
+  "isHumanUploaded": false,
+  "generatedByPersonaId": "PER-01",
+  "generatedAt": "2026-08-16T18:09:00.449Z",
+  "version": "1.0",
+  "schemaVersion": "2026.1",
+  "auditStatus": "ACTIVE",
+  "auditHistory": [
+    {
+      "timestamp": "2026-08-16T18:09:00.449Z",
+      "action": "INITIAL_GENERATION",
+      "auditStatus": "ACTIVE",
+      "actor": "PER-01",
+      "note": "Generated canonical synthetic training evidence: Master Purchase Agreement (Executed) — Levant Culinary Traditions Corp (v1.0)"
+    }
+  ],
+  "structuredEvidenceData": {
+    "documentType": "MASTER_PURCHASE_AGREEMENT",
+    "contractRef": "AGR-0364",
+    "buyer": "Levant Culinary Traditions Corp",
+    "buyerHq": "Chicago, IL",
+    "seller": "Al-Arz Cedar Olive Press & Mill",
+    "sellerCountry": "Lebanon",
+    "incoterms": "FOB [FOREIGN PORT — TO BE VERIFIED]",
+    "deliveryAndRiskTerm": "Section 3: FOB (Incoterms 2020) — Risk of loss passes when goods are on board the vessel at the foreign port of shipment [PORT TO BE VERIFIED].",
+    "titleTransferClause": "Section 4.2: Commercial title and proprietary ownership transfer contractually from Seller to Buyer at foreign port of shipment when goods are on board the vessel and Bill of Lading is issued; Buyer maintains continuous title during ocean transit and upon U.S. customs entry.",
+    "paymentTerms": "50% wire transfer upon Bill of Lading, 50% net 30 days post U.S. customs admission",
+    "executionDate": "2025-01-15",
+    "signatories": [
+      "Authorized Officer (Levant Culinary Traditions Corp)",
+      "Managing Director (Al-Arz Cedar Olive Press & Mill)"
+    ],
+    "regulatorySection": "Section 5 warrants facility registration; Section 6 identifies Buyer's broker engagement for electronic ACE entry."
+  },
+  "disclosureStatus": "DISCLOSED",
+  "disclosedAt": "2026-08-17T23:00:56.049Z",
+  "evidenceReviewLogs": [
+    {
+      "reviewedAt": "2026-08-17T23:08:35.219Z",
+      "reviewerId": "USR-CURRENT",
+      "reviewerRole": "HUSNI_SUPERVISOR",
+      "action": "EVIDENCE_INSPECTION_OPENED"
+    },
+    {
+      "reviewedAt": "2026-08-17T23:16:07.337Z",
+      "reviewerId": "USR-CURRENT",
+      "reviewerRole": "HUSNI_SUPERVISOR",
+      "action": "EVIDENCE_INSPECTION_OPENED"
+    }
+  ]
+}

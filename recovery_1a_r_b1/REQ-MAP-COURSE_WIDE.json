@@ -1,0 +1,161 @@
+{
+  "id": "REQ-MAP-COURSE_WIDE",
+  "projectId": "PRJ-324",
+  "moduleId": "COURSE_WIDE",
+  "status": "DRAFT",
+  "requirements": [
+    {
+      "id": "REQ-33F0443D",
+      "moduleId": "COURSE_WIDE",
+      "title": "Attendance and Login Requirements",
+      "description": "Students must log into the course during the first two weeks of the semester and must maintain an overall login attendance of at least 85 percent of the modules. Failure to comply may result in administrative withdrawal from the course.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-47"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "reviewAction": "CONFIRM_REQUIREMENT",
+      "reviewedByUid": "samar-uid-001",
+      "reviewedByMemberId": "MBR-001",
+      "reviewedByName": "Samar Baydoun",
+      "reviewedBy": "Samar Baydoun",
+      "reviewedAt": "2026-08-28T01:21:46.784Z",
+      "status": "CONFIRMED",
+      "scopeClassification": "COURSE_WIDE_ADMINISTRATIVE_POLICY"
+    },
+    {
+      "id": "REQ-51758D11",
+      "moduleId": "COURSE_WIDE",
+      "title": "Discussion Participation",
+      "description": "Students are required to participate in weekly class discussions. Each initial discussion post must meet a minimum word count of 500 words and include cited references. Additionally, students must respond to at least two classmates' postings.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-49"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "reviewAction": "CONFIRM_REQUIREMENT",
+      "reviewedByUid": "CClMuNRoqDbC5ZYQzjjwsGMts7Y2",
+      "reviewedByMemberId": "MBR-001",
+      "reviewedByName": "Samar Baydoun",
+      "reviewedBy": "Samar Baydoun",
+      "reviewedAt": "2026-08-28T01:25:15.623Z",
+      "status": "CONFIRMED",
+      "scopeClassification": "COURSE_WIDE_ADMINISTRATIVE_POLICY"
+    },
+    {
+      "id": "REQ-A752FB9B",
+      "moduleId": "COURSE_WIDE",
+      "title": "Assignment Deadlines and Late Work Policy",
+      "description": "Weekly assignments are due on Sunday by 11:59 PM EDT. No late work will be accepted, and no make-up dates will be given, without prior communication and approval for an extension from the instructor.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-51",
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-53",
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-73"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "reviewAction": "CONFIRM_REQUIREMENT",
+      "reviewedByUid": "CClMuNRoqDbC5ZYQzjjwsGMts7Y2",
+      "reviewedByMemberId": "MBR-001",
+      "reviewedByName": "Samar Baydoun",
+      "reviewedBy": "Samar Baydoun",
+      "reviewedAt": "2026-08-28T01:25:20.064Z",
+      "status": "CONFIRMED",
+      "scopeClassification": "COURSE_WIDE_ADMINISTRATIVE_POLICY"
+    },
+    {
+      "id": "REQ-FBD830E2",
+      "moduleId": "COURSE_WIDE",
+      "title": "APA Formatting Requirement",
+      "description": "Written references in APA format are required for every document prepared and submitted by students in this course.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-53",
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-63"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "reviewAction": "CONFIRM_REQUIREMENT",
+      "reviewedByUid": "CClMuNRoqDbC5ZYQzjjwsGMts7Y2",
+      "reviewedByMemberId": "MBR-001",
+      "reviewedByName": "Samar Baydoun",
+      "reviewedBy": "Samar Baydoun",
+      "reviewedAt": "2026-08-28T01:25:22.150Z",
+      "status": "CONFIRMED",
+      "scopeClassification": "COURSE_WIDE_ADMINISTRATIVE_POLICY"
+    },
+    {
+      "id": "REQ-7EA1BDEE",
+      "moduleId": "COURSE_WIDE",
+      "title": "Course Communication Protocol",
+      "description": "Students must use D2L course mail to communicate regarding academic matters, rather than using external email systems.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-75"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "reviewAction": "CONFIRM_REQUIREMENT",
+      "reviewedByUid": "CClMuNRoqDbC5ZYQzjjwsGMts7Y2",
+      "reviewedByMemberId": "MBR-001",
+      "reviewedByName": "Samar Baydoun",
+      "reviewedBy": "Samar Baydoun",
+      "reviewedAt": "2026-08-28T01:25:23.751Z",
+      "status": "CONFIRMED",
+      "scopeClassification": "COURSE_WIDE_ADMINISTRATIVE_POLICY"
+    },
+    {
+      "id": "REQ-DFCD3D0C",
+      "moduleId": "COURSE_WIDE",
+      "title": "Academic Integrity and Originality",
+      "description": "Plagiarism, cheating, and unapproved external help are strictly forbidden. Students must submit original work created exclusively for this course and must properly cite all external ideas or sources.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-78",
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-79"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "reviewAction": "CONFIRM_REQUIREMENT",
+      "reviewedByUid": "CClMuNRoqDbC5ZYQzjjwsGMts7Y2",
+      "reviewedByMemberId": "MBR-001",
+      "reviewedByName": "Samar Baydoun",
+      "reviewedBy": "Samar Baydoun",
+      "reviewedAt": "2026-08-28T01:25:25.328Z",
+      "status": "CONFIRMED",
+      "scopeClassification": "COURSE_WIDE_ADMINISTRATIVE_POLICY"
+    },
+    {
+      "id": "REQ-03C95929",
+      "moduleId": "COURSE_WIDE",
+      "title": "Religious Observance Notification",
+      "description": "Students needing to be absent for religious observances must inform their instructor at least two weeks before the holiday to arrange accommodations for missed materials or assignments.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-91"
+      ],
+      "reviewStatus": "CONFIRMED",
+      "reviewAction": "CONFIRM_REQUIREMENT",
+      "reviewedByUid": "CClMuNRoqDbC5ZYQzjjwsGMts7Y2",
+      "reviewedByMemberId": "MBR-001",
+      "reviewedByName": "Samar Baydoun",
+      "reviewedBy": "Samar Baydoun",
+      "reviewedAt": "2026-08-28T01:25:26.652Z",
+      "status": "CONFIRMED",
+      "scopeClassification": "COURSE_WIDE_ADMINISTRATIVE_POLICY"
+    }
+  ],
+  "sourceIds": [
+    "SRC-PRJ324-FSVP-WORKBOOK",
+    "SRC-MA324-00-SYLLABUS",
+    "SRC-MA324-01-FDALAW",
+    "SRC-MA324-01-ASSIGN",
+    "SRC-MA324-PREV-PKG",
+    "SRC-998748-6667",
+    "SRC-273902-2552"
+  ]
+}

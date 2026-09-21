@@ -1,0 +1,139 @@
+{
+  "id": "MSG-COACH-020942",
+  "roomId": "ROOM-PRJ-324-MA-324-01",
+  "projectId": "PRJ-324",
+  "moduleId": "MA-324-01",
+  "caseId": "CASE-LEVANT-01",
+  "sessionId": "SESS-CASE-LEVANT-01-PILOT-V1-469792",
+  "channel": "INTERNAL_CBRIDGE",
+  "senderId": "AI-COACH",
+  "senderName": "C-Bridge AI Coach",
+  "senderRole": "AI_COACH",
+  "senderTeam": "CBRIDGE_TEAM",
+  "text": "**WHAT TO INVESTIGATE FIRST:** Under 21 CFR § 1.500, investigate whether Levant meets the \"U.S. owner or consignee\" definition at the time of entry.\n\n**DOCUMENTED FACTS:** CBP Form 7501 lists Levant as Importer of Record. The Master Purchase Agreement (Sec 4.2) and Commercial Invoice INV-0403 establish FOB terms and title transfer upon loading. \n\n**CLIENT ASSERTIONS:** Levant asserts outright ownership upon vessel loading and active FDA inquiry status.\n\n**UNVERIFIED FACTS & GAPS:** FDA ACE PGA Message Set filings containing the FSVP Entity Role Code and DUNS number remain missing.\n\n**INDEPENDENT PRONG EVALUATION:** Under § 1.500, the entity must be a U.S. person (Prong 1) AND own, purchase, or agree in writing to purchase the food at entry (Prong 2).\n\n**PRESERVE MATERIAL CONDITIONS:** Distinguish FOB Incoterms (risk of loss) from Section 4.2 (title transfer). These are distinct legal concepts.\n\n**PRELIMINARY ANALYSIS READINESS:** Disclosed evidence supports a preliminary FSVP Importer analysis, but is incomplete without transmission data.\n\nWhat specific FDA ACE PGA documentation should the consultant request to verify 21 CFR § 1.509 compliance?",
+  "messageType": "AI_COACH_TIP",
+  "timestamp": "11:23 PM",
+  "isoTimestamp": "2026-08-17T23:23:40.942Z",
+  "consultingCategory": "SCOPE",
+  "coachEvaluation": {
+    "questionQuality": "EXCELLENT",
+    "feedback": "Supervisory oversight active. The consulting team has disclosed 3 unique record(s) (CBP_Form_7501_Entry_75048291038.pdf, Master_Purchase_Agreement_Executed_Levant_Culinary_Traditions_Corp.pdf, Commercial_Invoice_INV-0403.pdf). Evaluation correctly focuses on testing contractual title and customs roles under 21 CFR Part 1 Subpart L (§§ 1.500–1.514) — Foreign Supplier Verification Programs for Food Importers.",
+    "suggestedNextQuestion": "What specific documentary gaps remain before the consultant can formulate a verified preliminary determination?",
+    "evidentiaryGapsIdentified": [
+      "Verification whether third-party purchaser exists prior to entry"
+    ]
+  },
+  "sourceTrace": {
+    "traceId": "TRACE-020942",
+    "queryOrContext": "Please independently re-analyze all evidence currently disclosed in this active session against the current consulting objective and approved sources. Determine what each document actually establishes, what remains unverified, whether the evidence supports a preliminary determination, and what the consultant should investigate or request next. Preserve all material document conditions and do not make assumptions beyond the evidence.",
+    "generatedAt": "2026-08-17T23:23:40.942Z",
+    "projectId": "PRJ-324",
+    "moduleId": "MA-324-01",
+    "caseId": "CASE-LEVANT-01",
+    "actingRole": "HUSNI_SUPERVISOR",
+    "channel": "INTERNAL_CBRIDGE",
+    "claims": [
+      {
+        "claimId": "CLM-01",
+        "claimText": "These are distinct legal concepts.",
+        "claimType": "AI_INFERENCE",
+        "classification": "SOURCE_DERIVED",
+        "supportingSourceIds": [
+          "SRC-MA324-04-INCOTERMS2020"
+        ],
+        "supportingDocumentIds": [],
+        "evidenceSnippet": "Under Incoterms 2020 FOB (Free On Board): Delivery occurs and risk of loss or damage to the goods passes from seller to buyer when the goods are on board the vessel at the named port of shipment. Seller bears all costs and risks until the goods are placed on board. Buyer bears all costs and risks of loss from that moment onward.\n\nCRITICAL LEGAL GOVERNANCE DISTINCTION: Incoterms rules govern delivery, transportation costs, and risk of loss during maritime carriage. Incoterms DO NOT govern transfer of property title or ownership rights. Title transfer must be established separately by explicit contractual agreement (e.g. a commercial sales agreement's title clause) or applicable governing sales law (e.g. UCC Article 2 or CISG).",
+        "reasoningRationale": "Directly derived and verified from approved project source: ICC Incoterms 2020 Rules — Free On Board (FOB) Maritime Delivery & Risk Allocation [SRC-MA324-04-INCOTERMS2020].",
+        "confidenceState": "SUPPORTED",
+        "supportStatus": "SUPPORTED",
+        "authorityLevel": "LEVEL_1_PRIMARY_AUTHORITATIVE",
+        "location": {},
+        "fieldLocationStatus": "NOT_APPLICABLE"
+      },
+      {
+        "claimId": "CLM-02",
+        "claimText": "Disclosed evidence supports a preliminary FSVP Importer analysis, but is incomplete without transmission data.",
+        "claimType": "AI_INFERENCE",
+        "classification": "SOURCE_DERIVED",
+        "supportingSourceIds": [
+          "SRC-MA324-01-FDALAW",
+          "SRC-MA324-02-CBP7501",
+          "SRC-MA324-03-ACEPGA",
+          "ATT-SYNTH-CBP7501-665075",
+          "ATT-SYNTH-MPA-740364",
+          "ATT-SYNTH-INV-860403"
+        ],
+        "supportingDocumentIds": [],
+        "evidenceSnippet": "21 CFR 1.500: FSVP Importer means the U.S. owner or consignee of an article of food that is being offered for import into the United States. If there is no U.S. owner or consignee of an article of food at the time of U.S. entry, the FSVP importer is the U.S. agent or representative of the foreign owner or consignee of the food at the time of entry, as confirmed in a signed statement of consent.\n\n21 CFR 1.500: U.S. owner or consignee means a person in the United States who, at the time of entry of an article of food into the United States, owns the food, has purchased the food, or has agreed in writing to purchase the food.\n\n21 CFR 1.500: Qualified auditor means a person who is a qualified individual as defined in § 1.500 and has technical expertise obtained through education, training, or experience (or a combination thereof) necessary to perform the auditing function. Note: A qualified auditor is distinct from FDA-accredited third-party certification bodies under 21 CFR Part 1 Subpart M.\n\n21 CFR 1.502: What food is covered? Except as specified in this section, you must develop, maintain, and follow an FSVP for each food brought into the United States.\n\n21 CFR 1.504: Hazard Analysis. You must conduct a hazard analysis for each type of food you import to determine whether there are any biological, chemical (including radiological), or physical hazards that require a control.\n\n21 CFR 1.506: Supplier Verification Activities. Under 21 CFR 1.506(d)(1), when a hazard in a food will be controlled by the foreign supplier and is a hazard for which there is a reasonable probability that exposure will cause serious adverse health consequences or death (SAHC), an annual onsite audit by a Qualified Auditor is the required baseline verification activity before importing the food, unless an alternative verification method is scientifically justified under § 1.506(d)(1)(ii) or the supplier is subject to comparable recognized food safety oversight under § 1.512.\n\n21 CFR 1.509: Identification of the FSVP importer at entry. Before an article of food is imported or offered for import into the United States, the FSVP importer for the food must ensure that, for each line entry of food, the name, electronic mail address, and unique facility identifier (UFI) recognized as acceptable by FDA identifying the FSVP importer are provided electronically when filing entry with U.S. Customs and Border Protection (CBP).",
+        "reasoningRationale": "Directly derived and verified from approved project source: 21 CFR Part 1 Subpart L (§§ 1.500–1.514) — Foreign Supplier Verification Programs for Food Importers [SRC-MA324-01-FDALAW].",
+        "confidenceState": "SUPPORTED",
+        "supportStatus": "SUPPORTED",
+        "authorityLevel": "LEVEL_1_PRIMARY_AUTHORITATIVE",
+        "location": {},
+        "fieldLocationStatus": "NOT_APPLICABLE"
+      }
+    ],
+    "overallConfidence": "SUPPORTED",
+    "authorityLevelsInvolved": [
+      "LEVEL_1_PRIMARY_AUTHORITATIVE"
+    ],
+    "evidenceSummary": "[SOURCE_DERIVED] These are distinct legal concepts.... -> (Sources: SRC-MA324-04-INCOTERMS2020)\n[SOURCE_DERIVED] Disclosed evidence supports a preliminary FSVP Importer analysis, but is incomplete without transmis... -> (Sources: SRC-MA324-01-FDALAW, SRC-MA324-02-CBP7501, SRC-MA324-03-ACEPGA, ATT-SYNTH-CBP7501-665075, ATT-SYNTH-MPA-740364, ATT-SYNTH-INV-860403)",
+    "unknownsOrGaps": [
+      "Confirmation whether any third-party U.S. purchaser exists prior to entry.",
+      "Exact foreign port of departure in commercial shipping records [PORT TO BE VERIFIED]."
+    ],
+    "requiredNextVerification": "Inspect Master Purchase Agreement Section 4.2 in existing evidence inventory and compare with CBP Form 7501 Block 26 / ACE electronic entry summary data. Inquire whether any other U.S. party purchased or agreed in writing to purchase the food prior to U.S. entry.",
+    "researchPerformed": false,
+    "researchRecordIds": [],
+    "humanGovernanceNotice": "GOVERNANCE NOTICE: AI analysis provides preliminary regulatory and evidence-grounded evaluation only. AI does NOT grant QA REVIEWED, SUPERVISOR APPROVED, or formal legal approval authority.",
+    "modelMetadata": {
+      "modelProvider": "GOOGLE",
+      "modelId": "gemini-3.1-pro-preview",
+      "modelVersion": "gemini-3.1-pro-preview",
+      "requestPurpose": "AI_COACH",
+      "inputTokens": 7006,
+      "outputTokens": 289,
+      "totalTokens": 8734,
+      "createdAt": "2026-08-17T23:23:29.833Z",
+      "isSubstantive": true,
+      "status": "SUCCESS",
+      "fallbackApplied": false,
+      "latencyMs": 11101,
+      "thinkingLevel": "HIGH"
+    },
+    "inputTokens": 7006,
+    "outputTokens": 289,
+    "totalTokens": 8734,
+    "validationMetrics": {
+      "passed": true,
+      "unsupportedClaimsBlockedCount": 0,
+      "falseLabelsPreventedCount": 0,
+      "fieldNumberSanitizations": 0,
+      "redundantDocumentRequestsPrevented": 0,
+      "schemaVerificationStatus": "NO_SCHEMA_CLAIMS",
+      "validationChecks": [
+        {
+          "checkName": "Official Document Schema Verification",
+          "status": "PASS",
+          "details": "All document field mappings align with verified schemas (CBP 7501, FDA ACE)."
+        },
+        {
+          "checkName": "Evidence Inventory Awareness Check",
+          "status": "PASS",
+          "details": "Evidence awareness active. Only genuinely missing records are requested."
+        },
+        {
+          "checkName": "Claim-to-Evidence Entailment Gate",
+          "status": "PASS",
+          "details": "All 2 substantive claims strictly verified against Level 1-3 sources."
+        },
+        {
+          "checkName": "Anti-False-Label Protection",
+          "status": "PASS",
+          "details": "EVIDENCE SUPPORTED label gated. Cannot be assigned unless cited evidence directly entails the claim."
+        }
+      ]
+    }
+  },
+  "sourceTraceId": "TRACE-020942"
+}

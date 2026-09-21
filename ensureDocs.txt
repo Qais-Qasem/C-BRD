@@ -1,0 +1,190 @@
+async function ensureCanonicalSyntheticDocuments(
+  projectId: string = "PRJ-324",
+  moduleId: string = "MA-324-01",
+  caseId: string = "CASE-LEVANT-01",
+  sessionId: string = "SESS-MA324-01",
+  targetMessageId: string = ""
+): Promise<any[]> {
+  const db = getDb();
+  const nowIso = new Date().toISOString();
+
+  let existingAtts = Array.from(getStoreCollection("case_attachments").values()).filter((a: any) =>
+    (a.projectId === projectId || a.projectId === "PRJ-324" || a.projectId === "PRJ-FSVP-01") &&
+    a.moduleId === moduleId &&
+    a.synthetic === true
+  );
+
+  if (db) {
+    try {
+      const attDocs = await fetchCollectionDocs("case_attachments");
+      const filtered = attDocs.filter((a: any) => 
+        (a.projectId === projectId || a.projectId === "PRJ-324" || a.projectId === "PRJ-FSVP-01") &&
+        a.moduleId === moduleId &&
+        a.synthetic === true
+      );
+      if (filtered.length > 0) {
+        const map = new Map();
+        [...existingAtts, ...filtered].forEach((a: any) => map.set(a.id, a));
+        existingAtts = Array.from(map.values());
+      }
+    } catch (e) {
+      console.warn("Firestore synthetic docs fetch warning:", e);
+    }
+  }
+
+  // Mark legacy v1 CBP docs as SUPERSEDED if v2 exists
+  const legacyCbpDocs = existingAtts.filter((a: any) => 
+    a.documentType === 'CBP_ENTRY_SUMMARY_7501' && 
+    (a.version === '1.0' || !a.version?.includes('Verified') || a.auditStatus !== 'SUPERSEDED') &&
+    a.version !== '2.0 (Verified Schema)'
+  );
+
+  for (const legacyDoc of legacyCbpDocs) {
+    legacyDoc.auditStatus = 'SUPERSEDED';
+    legacyDoc.auditNote = 'SUPERSEDED — SCHEMA CORRECTION (Replaced by v2.0 aligned with official TMPL-CBP-7501-OFFICIAL verified schema)';
+    legacyDoc.auditHistory = legacyDoc.auditHistory || [];
+    legacyDoc.auditHistory.push({
+      timestamp: nowIso,
+      action: 'SCHEMA_SUPERSEDED',
+      auditStatus: 'SUPERSEDED',
+      actor: 'SYSTEM_SCHEMA_REGISTRY',
+      note: 'Attachment superseded due to field layout alignment against verified official CBP Form 7501 schema (TMPL-CBP-7501-OFFICIAL).'
+    });
+    getStoreCollection("case_attachments").set(legacyDoc.id, legacyDoc);
+    if (db) {
+      try {
+        await setDoc(doc(db, "case_attachments", legacyDoc.id), legacyDoc);
+      } catch (e) {
+        console.warn("[Firestore] legacy CBP 7501 supersede update warning:", e);
+      }
+    }
+  }
+
+  const existingMpa = existingAtts.find((a: any) => a.documentType === 'MASTER_PURCHASE_AGREEMENT' && a.auditStatus === 'ACTIVE');
+  const existingVerifiedCbp = existingAtts.find((a: any) => 
+    a.documentType === 'CBP_ENTRY_SUMMARY_7501' && 
+    a.version === '2.0 (Verified Schema)' && 
+    a.auditStatus === 'ACTIVE'
+  );
+
+  const createdRecords: any[] = [];
+  const caseFacts = {
+    companyName: "Levant Culinary Traditions Corp",
+    headquarters: "Chicago, IL",
+    facilityLocations: ["Chicago, IL", "Newark, NJ"],
+    commodities: ["Cold-Pressed Extra Virgin Olive Oil", "Artisanal Sesame Tahini", "Halva Confections", "Za'atar Seasonings"],
+    ein: "36-9284102",
+    duns: "08-392-1048",
+    supplierName: "Al-Arz Cedar Olive Press & Mill",
+    supplierCountry: "Lebanon",
+    portOfEntry: "Port of Newark / New York (Port Code: 4601)",
+    brokerName: "Trans-Atlantic Customs Clearance Services LLC",
+    brokerFilerCode: "9B2-849201",
+    entryNumber: "750-4829103-8",
+    incotermsRule: "FOB"
+  };
+
+  // Ensure canonical MPA exists and has binary in memory cache
+  if (!existingMpa) {
+    try {
+      const mpaDoc = await generateMasterPurchaseAgreement({
+        projectId,
+        moduleId,
+        caseId,
+        sessionId,
+        documentType: 'MASTER_PURCHASE_AGREEMENT',
+        caseFacts
+      });
+      const record = await createAndPersistSyntheticAttachment(mpaDoc, targetMessageId, "CLIENT_ENGAGEMENT");
+      record.disclosureStatus = targetMessageId ? "DISCLOSED" : "AVAILABLE_IN_CASE";
+      createdRecords.push(record);
+    } catch (err) {
+      console.warn("Failed to generate canonical MPA synthetic doc:", err);
+    }
+  } else if (!caseAttachmentBinaryStore.has(existingMpa.id)) {
+    try {
+      const mpaDoc = await generateMasterPurchaseAgreement({
+        projectId,
+        moduleId,
+        caseId,
+        sessionId,
+        documentType: 'MASTER_PURCHASE_AGREEMENT',
+        caseFacts
+      });
+      caseAttachmentBinaryStore.set(existingMpa.id, {
+        id: existingMpa.id,
+        buffer: mpaDoc.fileBuffer,
+        mimeType: mpaDoc.mimeType || "application/pdf",
+        originalFileName: existingMpa.originalFileName || mpaDoc.originalFileName,
+        fileSize: mpaDoc.fileSize,
+        projectId,
+        moduleId,
+        caseId,
+        sessionId,
+        channelId: "CLIENT_ENGAGEMENT",
+        visibilityScope: "CLIENT_FACING",
+        uploadedByMemberId: "PER-01",
+        uploadedAt: nowIso
+      });
+    } catch (e) {
+      console.warn("Rehydrate MPA binary warning:", e);
+    }
+  }
+
+  // Ensure verified CBP Form 7501 exists and has binary in memory cache
+  if (!existingVerifiedCbp) {
+    try {
+      const cbpDoc = await generateCbpEntrySummary7501({
+        projectId,
+        moduleId,
+        caseId,
+        sessionId,
+        documentType: 'CBP_ENTRY_SUMMARY_7501',
+        caseFacts
+      });
+      const record = await createAndPersistSyntheticAttachment(cbpDoc, targetMessageId, "CLIENT_ENGAGEMENT");
+      record.disclosureStatus = targetMessageId ? "DISCLOSED" : "AVAILABLE_IN_CASE";
+      createdRecords.push(record);
+    } catch (err) {
+      console.warn("Failed to generate canonical CBP 7501 synthetic doc:", err);
+    }
+  } else if (!caseAttachmentBinaryStore.has(existingVerifiedCbp.id)) {
+    try {
+      const cbpDoc = await generateCbpEntrySummary7501({
+        projectId,
+        moduleId,
+        caseId,
+        sessionId,
+        documentType: 'CBP_ENTRY_SUMMARY_7501',
+        caseFacts
+      });
+      caseAttachmentBinaryStore.set(existingVerifiedCbp.id, {
+        id: existingVerifiedCbp.id,
+        buffer: cbpDoc.fileBuffer,
+        mimeType: cbpDoc.mimeType || "application/pdf",
+        originalFileName: existingVerifiedCbp.originalFileName || cbpDoc.originalFileName,
+        fileSize: cbpDoc.fileSize,
+        projectId,
+        moduleId,
+        caseId,
+        sessionId,
+        channelId: "CLIENT_ENGAGEMENT",
+        visibilityScope: "CLIENT_FACING",
+        uploadedByMemberId: "PER-01",
+        uploadedAt: nowIso
+      });
+    } catch (e) {
+      console.warn("Rehydrate CBP 7501 binary warning:", e);
+    }
+  }
+
+  const allActiveAtts = Array.from(getStoreCollection("case_attachments").values()).filter((a: any) =>
+    (a.projectId === projectId || a.projectId === "PRJ-324" || a.projectId === "PRJ-FSVP-01") &&
+    a.moduleId === moduleId &&
+    a.synthetic === true &&
+    a.auditStatus === 'ACTIVE'
+  );
+
+  return allActiveAtts.length > 0 ? allActiveAtts : createdRecords;
+}
+}

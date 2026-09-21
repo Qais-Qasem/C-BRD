@@ -1,0 +1,116 @@
+{
+  "id": "REQ-MAP-MA-324-02-1788400423376",
+  "projectId": "PRJ-324",
+  "moduleId": "MA-324-02",
+  "status": "DRAFT",
+  "requirements": [
+    {
+      "id": "REQ-41635359",
+      "moduleId": "MA-324-02",
+      "title": "Module Schedule",
+      "description": "Module Two is scheduled to take place from May 18th to May 24th.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-29"
+      ],
+      "subordinateLocators": [
+        {
+          "blockId": "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-29",
+          "startOffset": 354,
+          "endOffset": 752,
+          "sliceHash": "da3b565fb456d8a136ef536236bac21a41e75ffbd88f01aeea1430a5996daf9f",
+          "startMarker": "Module Two",
+          "endMarker": "Module Three",
+          "excerpt": "Module Two May 18th – May 24thHazard Analysis Evaluation and Approval of Foreign SupplierForeign Supplier VerificationReevaluation of Foreign Supplier Performance and Food Risk, and Corrective Actions..."
+        }
+      ],
+      "scopeClassification": "MODULE_ACADEMIC_REQUIREMENT",
+      "reviewStatus": "PENDING_MEMBER_REVIEW"
+    },
+    {
+      "id": "REQ-14C3FC74",
+      "moduleId": "MA-324-02",
+      "title": "Core Module Topics",
+      "description": "The module covers Hazard Analysis, Evaluation and Approval of Foreign Supplier, Foreign Supplier Verification, Reevaluation of Foreign Supplier Performance and Food Risk, and Corrective Actions. It also covers compliance definitions, applicability, exemptions, and the Food Safety Plan.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-29",
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40"
+      ],
+      "subordinateLocators": [
+        {
+          "blockId": "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-29",
+          "startOffset": 354,
+          "endOffset": 752,
+          "sliceHash": "da3b565fb456d8a136ef536236bac21a41e75ffbd88f01aeea1430a5996daf9f",
+          "startMarker": "Module Two",
+          "endMarker": "Module Three",
+          "excerpt": "Module Two May 18th – May 24thHazard Analysis Evaluation and Approval of Foreign SupplierForeign Supplier VerificationReevaluation of Foreign Supplier Performance and Food Risk, and Corrective Actions..."
+        },
+        {
+          "blockId": "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40",
+          "startOffset": 549,
+          "endOffset": 1169,
+          "sliceHash": "8fc5246e3de99cad3feea9e543e8a388faea403ce04d71fa107743781ca504b0",
+          "startMarker": "Module Two",
+          "endMarker": "Module Three",
+          "excerpt": "Module TwoReading:Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF)Chapter 4 Hazard AnalysisPages 4-1 to 4-34Chapter 5- Foreign SupplierPages 5-1 to 5-18Chapter 6-Verificatio..."
+        }
+      ],
+      "scopeClassification": "MODULE_ACADEMIC_REQUIREMENT",
+      "reviewStatus": "PENDING_MEMBER_REVIEW"
+    },
+    {
+      "id": "REQ-C7A95A42",
+      "moduleId": "MA-324-02",
+      "title": "Required Reading Assignments",
+      "description": "Students must read the Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF), specifically Chapter 4 (Hazard Analysis, Pages 4-1 to 4-34), Chapter 5 (Foreign Supplier, Pages 5-1 to 5-18), and Chapter 6 (Verification, Pages 6-1 to 6-25).",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40"
+      ],
+      "subordinateLocators": [
+        {
+          "blockId": "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40",
+          "startOffset": 549,
+          "endOffset": 1169,
+          "sliceHash": "8fc5246e3de99cad3feea9e543e8a388faea403ce04d71fa107743781ca504b0",
+          "startMarker": "Module Two",
+          "endMarker": "Module Three",
+          "excerpt": "Module TwoReading:Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF)Chapter 4 Hazard AnalysisPages 4-1 to 4-34Chapter 5- Foreign SupplierPages 5-1 to 5-18Chapter 6-Verificatio..."
+        }
+      ],
+      "scopeClassification": "MODULE_ACADEMIC_REQUIREMENT",
+      "reviewStatus": "PENDING_MEMBER_REVIEW"
+    },
+    {
+      "id": "REQ-6D00A394",
+      "moduleId": "MA-324-02",
+      "title": "Lecturer Information",
+      "description": "The material, including Hazard Analysis, will be instructed by Lecturer Scott Haskell, DVM, PhD.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40"
+      ],
+      "subordinateLocators": [
+        {
+          "blockId": "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40",
+          "startOffset": 549,
+          "endOffset": 1169,
+          "sliceHash": "8fc5246e3de99cad3feea9e543e8a388faea403ce04d71fa107743781ca504b0",
+          "startMarker": "Module Two",
+          "endMarker": "Module Three",
+          "excerpt": "Module TwoReading:Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF)Chapter 4 Hazard AnalysisPages 4-1 to 4-34Chapter 5- Foreign SupplierPages 5-1 to 5-18Chapter 6-Verificatio..."
+        }
+      ],
+      "scopeClassification": "MODULE_ACADEMIC_REQUIREMENT",
+      "reviewStatus": "PENDING_MEMBER_REVIEW"
+    }
+  ],
+  "sourceIds": [],
+  "customFocus": ""
+}

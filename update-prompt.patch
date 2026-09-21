@@ -1,0 +1,55 @@
+--- server/responseContractValidator.ts
++++ server/responseContractValidator.ts
+@@ -871,20 +871,28 @@
+   if (aiClient) {
+     try {
+       const promptGuidelines: string[] = [];
++      
++      // GENERIC AUTONOMOUS SOURCE-REASONING ENGINE INSTRUCTIONS
++      promptGuidelines.push("SOURCE-FIRST RESEARCH: Actively search and retrieve the exact sections of approved sources that answer the question. Do not rely primarily on model memory.");
++      promptGuidelines.push("DYNAMIC RULE EXTRACTION: Derive the analytical tests, independent prongs, compound conditions, exceptions, and sequence requirements dynamically from the retrieved sources.");
++      promptGuidelines.push("EVIDENCE-TO-RULE MAPPING: Map case evidence to each extracted criterion independently. Clearly identify support, partial support, conflicts, and gaps.");
++      promptGuidelines.push("FACT / RULE / INFERENCE SEPARATION: Distinguish authoritative rules, reference interpretations, document facts, client assertions, AI inferences, and unverified facts.");
++      promptGuidelines.push("CROSS-SOURCE REASONING: Detect and address conflicts or dependencies across authoritative rules, standards, manuals, and case evidence.");
++
+       if (obligations.requireInvestigateFirst) {
+-        promptGuidelines.push("- Explicitly state and guide WHAT THE CONSULTANT SHOULD INVESTIGATE FIRST based on the approved sources.");
++        promptGuidelines.push("- CONSULTING INTELLIGENCE: Explicitly state and guide WHAT THE CONSULTANT SHOULD INVESTIGATE FIRST based on the approved sources and material gaps.");
+       }
+       if (obligations.requireNextClientQuestion) {
+-        promptGuidelines.push("- Explicitly provide an ACTIONABLE NEXT QUESTION TO ASK THE CLIENT, labeled '**Next Question for the Client:**' followed by a specific discovery question ending in '?'.");
++        promptGuidelines.push("- ACTIONABLE DISCOVERY: Explicitly provide an ACTIONABLE NEXT QUESTION TO ASK THE CLIENT, labeled '**Next Question for the Client:**' followed by a specific discovery question targeting the largest unresolved material gap.");
+       }
+       if (obligations.requireClientOpeningMessage || obligations.requireClientAssertions) {
+-        promptGuidelines.push("- Distinguish client opening representations from verified documentary facts without inventing unmade statements.");
++        promptGuidelines.push("- ASSERTION ISOLATION: Distinguish client opening representations from verified documentary facts without inventing unmade statements. Never convert client assertions into document facts.");
+       }
+       if (obligations.requireApprovedSources) {
+-        promptGuidelines.push(`- Ground analysis strictly in the approved governing standard (${primaryRuleReference || 'canonical authority'}).`);
++        promptGuidelines.push(`- GROUNDING: Ground analysis strictly in the approved governing standard and provided references (${primaryRuleReference || 'canonical authority'}). Primary authoritative sources outrank manual interpretations.`);
+       }
+       if (obligations.requireProngEvaluation) {
+-        promptGuidelines.push("- Evaluate independent statutory prongs derived from the governing authority separately.");
++        promptGuidelines.push("- PRONG SEPARATION: Evaluate independent statutory or technical prongs derived from the governing authority separately. Never collapse compound conditions (e.g., A AND B).");
+       }
+       promptGuidelines.push("- DO NOT leak internal diagnostic counters such as 'requested records count: 0' or 'records count: 0'. Use natural professional language.");
+ 
+@@ -898,11 +906,12 @@
+         }).join("\n\n");
+       }
+ 
+       const fullAttempt1Prompt = `
+-Learner Note / Inquiry: "${learnerMessage}"
+-Active Disclosed Records: ${disclosedDocTitles.join(", ") || "No executed documents disclosed yet"}
+-Primary Governing Rule: ${primaryRuleReference || "Approved Regulatory Standard"}
+-Active Objective: ${activeObjective || moduleId}
+-${attachedRecordsExcerpt}
++GENERIC AUTONOMOUS SOURCE-REASONING ENGINE INQUIRY
++Learner Note / Inquiry: "${learnerMessage}"
++Active Disclosed Records: ${disclosedDocTitles.join(", ") || "No executed documents disclosed yet"}
++Primary Governing Rule: ${primaryRuleReference || "Approved Regulatory Standard"}
++Active Objective: ${activeObjective || moduleId}
++${attachedRecordsExcerpt}
+ 
+ MANDATORY RESPONSE REQUIREMENTS:
+ ${promptGuidelines.join("\n")}

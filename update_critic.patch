@@ -1,0 +1,45 @@
+--- server/responseContractValidator.ts
++++ server/responseContractValidator.ts
+@@ -950,6 +950,56 @@
+         currentDraft = result1.rawText.trim();
+         executionMeta = result1.metadata;
+       }
++
++      // ======================================================================
++      // SECOND-PASS CRITIC: RAW-SOURCE ENTAILMENT & DOCUMENT IDENTITY
++      // ======================================================================
++      if (currentDraft && disclosedDocs.length > 0) {
++         const criticPrompt = `As an independent second-pass critic, verify the generated claims against the RAW SOURCE EXCERPTS.
++Do not rely on structured summaries.
++
++GENERATED DRAFT:
++${currentDraft}
++
++EVIDENCE FACTS:
++${disclosedDocs.map((d: any) => 
++  (d.atomicFacts || []).map((f: any) => 
++  \`- STRUCTURED FACT: \${f.statement}\n- RAW EXCERPT: \${f.rawSourceText || f.rawExcerpt || f.statement}\n- LOGICAL STRUCTURE: \${f.logicalStructure || 'N/A'}\n- MATERIAL QUALIFIERS: \${(f.materialQualifiers || []).join(', ')}\n- DOCUMENT ID: \${f.documentId} (File: \${d.filename})\`
++  ).join('\n')
++).join('\n\n')}
++
++RULES:
++1. If any claim in the draft omits a material qualifier or condition present in the RAW EXCERPT, output: DEFECT: MATERIAL_CONDITION_DROPPED
++2. If the draft relies on a structured fact but misidentifies the source document or uses values not in the raw text, output: DEFECT: DOCUMENT_IDENTITY_MISMATCH
++3. Otherwise, output: CRITIC_PASS
++`;
++         const criticRes = await executeGovernedModelCall({
++            aiClient, purpose: "CRITIC", contents: criticPrompt, config: { systemInstruction },
++            projectId, moduleId, caseId, memberId: actingRole, sessionId
++         });
++         if (criticRes.success && criticRes.rawText) {
++            if (criticRes.rawText.includes("MATERIAL_CONDITION_DROPPED")) {
++                currentDraft += "\n\n[CRITIC DEFECT]: MATERIAL_CONDITION_DROPPED. The draft overstates a claim by dropping a material qualifier from the raw source.";
++            }
++            if (criticRes.rawText.includes("DOCUMENT_IDENTITY_MISMATCH")) {
++                currentDraft += "\n\n[CRITIC DEFECT]: DOCUMENT_IDENTITY_MISMATCH. The draft misidentifies document source or relies on unverified structured values.";
++            }
++         }
++      }
+     } catch (e) {
+       console.warn("[GovernedContractGate] Attempt 1 failed:", e);
+     }

@@ -1,0 +1,12 @@
+{
+  "projectId": "c-bridge-regulatory-platform",
+  "appId": "1:344778339892:web:bacc70c65d52915c7a3c61",
+  "apiKey": "AIzaSyDbFCqwbnucCbeVko3si0DrSbgy2nPGyvc",
+  "authDomain": "c-bridge-regulatory-platform.firebaseapp.com",
+  "firestoreDatabaseId": "ai-studio-cbridgeregulator-d62d5a18-0fc2-4836-9722-be48f6e81a6f",
+  "storageBucket": "c-bridge-regulatory-platform.firebasestorage.app",
+  "messagingSenderId": "344778339892",
+  "measurementId": "",
+  "oAuthClientId": "344778339892-70827j4a459arm406tusjks6fn8u7jdq.apps.googleusercontent.com",
+  "recaptchaSiteKey": ""
+}

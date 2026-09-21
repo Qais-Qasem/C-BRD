@@ -1,0 +1,421 @@
+
+      const wantsCommercialInvoice = 
+        lower.includes("invoice") || 
+        lower.includes("commercial invoice") || 
+        lower.includes("pricing") || 
+        lower.includes("packing list");
+
+      if (wantsPurchaseAgreement) requestedDocTypes.push('MASTER_PURCHASE_AGREEMENT');
+      if (wantsCustomsEntry) requestedDocTypes.push('CBP_ENTRY_SUMMARY_7501');
+      if (wantsFdaAceData) requestedDocTypes.push('FDA_ACE_FSVP_ENTRY_DATA');
+      if (wantsCommercialInvoice && !requestedDocTypes.includes('COMMERCIAL_INVOICE')) requestedDocTypes.push('COMMERCIAL_INVOICE');
+
+      if (ai) {
+        try {
+          const clientPrompt = `
+You are Elena Rostova (CEO) and Marco Bellini (QA Director) of Levant Culinary Traditions Corp.
+A C-Bridge consultant (${senderName || 'Samar'}) just shared a message in the Client Engagement Room:
+"${messageBodyText}"
+
+${attachmentBriefing}
+
+Company Context:
+- Levant Culinary Traditions Corp imports cold-pressed extra virgin olive oil, artisanal halva, za'atar seasoning blends, and sesame tahini from Lebanon and Jordan.
+- Shipments are contracted under FOB terms with risk of loss passing when goods are on board the vessel at the foreign port of shipment [PORT TO BE VERIFIED], and title transferring under Section 4.2 of the purchase agreement.
+- Received FDA FSVP inquiry at Port of Newark.
+- Foreign suppliers have ISO 22000 and BRCGS certificates and FDA registration numbers.
+- Levant owns the inventory outright upon shipment when goods are loaded on board the vessel.
+- Available simulated training documents to attach if relevant: MASTER_PURCHASE_AGREEMENT, CBP_ENTRY_SUMMARY_7501, FDA_ACE_FSVP_ENTRY_DATA, COMMERCIAL_INVOICE.
+
+CRITICAL INSTRUCTION:
+Return a JSON object strictly conforming to this schema:
+{
+  "speaker": "Elena Rostova" | "Marco Bellini" | "Elena Rostova & Marco Bellini",
+  "text": "Your professional reply (2-4 sentences). If you attach a document, refer to it specifically.",
+  "attachDocuments": ["MASTER_PURCHASE_AGREEMENT"] // optional list of document types to attach
+}
+`;
+          const result = await executeGovernedModelCall({
+            aiClient: ai,
+            purpose: "CLIENT_SIMULATION",
+            contents: clientPrompt,
+            config: {
+              responseMimeType: "application/json"
+            },
+            projectId,
+            moduleId,
+            caseId: activeCase?.id || caseId,
+            memberId: senderName || 'Samar',
+            sessionId
+          });
+
+          if (result.success && result.rawText) {
+            try {
+              const parsed = JSON.parse(result.rawText.trim());
+              if (parsed.text) clientReplyText = parsed.text.trim();
+              if (Array.isArray(parsed.attachDocuments) && parsed.attachDocuments.length > 0) {
+                parsed.attachDocuments.forEach((docType: any) => {
+                  if (['MASTER_PURCHASE_AGREEMENT', 'CBP_ENTRY_SUMMARY_7501', 'FDA_ACE_FSVP_ENTRY_DATA', 'COMMERCIAL_INVOICE'].includes(docType) && !requestedDocTypes.includes(docType)) {
+                    requestedDocTypes.push(docType);
+                  }
+                });
+              }
+            } catch (pErr) {
+              clientReplyText = result.rawText.trim();
+            }
+          }
+        } catch (e) {
+          console.warn("Gemini client response generation failed:", e);
+        }
+      }
+
+      const clientMsgId = `MSG-CLI-${Date.now().toString().slice(-6)}`;
+      const createdAttachments: any[] = [];
+
+      const caseFacts = {
+        companyName: activeCase?.virtualCompanyName || activeCase?.companyName || "Levant Culinary Traditions Corp",
+        headquarters: "Chicago, IL",
+        facilityLocations: ["Chicago, IL", "Newark, NJ"],
+        commodities: activeCase?.products?.map((p: any) => p.name || p.productName) || [
+          "Cold-Pressed Extra Virgin Olive Oil",
+          "Artisanal Sesame Tahini",
+          "Halva Confections",
+          "Artisanal Za'atar Seasonings"
+        ],
+        ein: "36-9284102",
+        duns: "08-392-1048",
+        supplierName: "Al-Arz Cedar Olive Press & Mill",
+        supplierCountry: "Lebanon",
+        portOfEntry: "Port of Newark / New York (Port Code: 4601)",
+        brokerName: "Trans-Atlantic Customs Clearance Services LLC",
+        brokerFilerCode: "9B2-849201",
+        entryNumber: "750-4829103-8",
+        incotermsRule: "FOB"
+      };
+
+      // Attach canonical synthetic documents if requested (Progressive Disclosure)
+      const existingCaseAtts = Array.from(getStoreCollection("case_attachments").values()).filter((a: any) =>
+        (a.projectId === (projectId || "PRJ-324") || a.projectId === "PRJ-324" || a.projectId === "PRJ-FSVP-01") &&
+        a.moduleId === (moduleId || "MA-324-01") &&
+        a.auditStatus === "ACTIVE"
+      );
+
+      for (const docType of requestedDocTypes) {
+        try {
+          const matchedCanonical = existingCaseAtts.find((a: any) => a.documentType === docType);
+          if (matchedCanonical) {
+            matchedCanonical.messageId = clientMsgId;
+            matchedCanonical.disclosureStatus = "DISCLOSED";
+            matchedCanonical.disclosedAt = new Date().toISOString();
+            getStoreCollection("case_attachments").set(matchedCanonical.id, matchedCanonical);
+            if (db) {
+              try {
+                await setDoc(doc(db, "case_attachments", matchedCanonical.id), matchedCanonical);
+              } catch (e) {
+                console.warn("[Firestore] update disclosed attachment warning:", e);
+              }
+            }
+            if (!createdAttachments.some(a => (a.documentType && a.documentType === docType) || a.id === matchedCanonical.id)) {
+              createdAttachments.push(matchedCanonical);
+            }
+          } else {
+            const docResult = await generateSyntheticDocument({
+              projectId: projectId || "PRJ-324",
+              moduleId: moduleId || "MA-324-01",
+              caseId: caseId || "CASE-LEVANT-01",
+              sessionId: resolvedSessionId,
+              documentType: docType,
+              caseFacts,
+              generatedByPersonaId: "PER-01"
+            });
+            const attRecord = await createAndPersistSyntheticAttachment(docResult, clientMsgId, "CLIENT_ENGAGEMENT");
+            attRecord.disclosureStatus = "DISCLOSED";
+            if (!createdAttachments.some(a => (a.documentType && a.documentType === docType) || a.id === attRecord.id)) {
+              createdAttachments.push(attRecord);
+            }
+          }
+        } catch (genErr) {
+          console.warn(`Failed to generate/link synthetic document ${docType}:`, genErr);
+        }
+      }
+
+      if (!clientReplyText) {
+        if (createdAttachments.length > 0) {
+          const docNames = createdAttachments.map(a => `"${a.originalFileName}"`).join(" and ");
+          clientReplyText = `Elena Rostova (Levant): Samar, as requested, I have attached our official ${docNames} for your regulatory review. This confirms our title ownership structure and customs entry details at Port of Newark.`;
+        } else if (sanitizedAttachments.length > 0) {
+          const firstAtt = sanitizedAttachments[0];
+          clientReplyText = `Elena Rostova & Marco Bellini (Levant): Thank you for sharing "${firstAtt.originalFileName}". Marco has reviewed the attached document against our foreign supplier records. For our Lebanese za'atar and Jordan Valley sesame facilities, this aligns with the hazard controls we have logged, though we will need our broker to confirm our electronic ACE PGA entry declarations under 21 CFR 1.500.`;
+        } else if (lower.includes("audit") || lower.includes("supplier") || lower.includes("tahini") || lower.includes("sesame") || lower.includes("oil")) {
+          clientReplyText = "Elena & Marco (Levant): For our Lebanese olive oil and sesame suppliers, Marco has their 2025 BRCGS and ISO 22000 audit certificates on file, but we have not verified whether Salmonella environmental controls and allergen cross-contact hazards were evaluated by an FSMA-qualified auditor. We can request the full audit report if FDA requires it.";
+        } else if (lower.includes("customs") || lower.includes("duns") || lower.includes("importer") || lower.includes("entry") || lower.includes("7501")) {
+          clientReplyText = "Elena Rostova (Levant): Our customs broker confirmed that Levant is listed as the Importer of Record and Ultimate Consignee on CBP Form 7501, and our corporate DUNS was transmitted in the electronic ACE PGA dataset. Under Section 4.2 of our Purchase Agreement, we take full commercial title of shipments when the goods are on board the vessel at the foreign port of shipment under our FOB terms.";
+        } else {
+          clientReplyText = "Elena Rostova (Levant): Thank you for that guidance, Samar. Marco and I will pull together the foreign supplier specification sheets, bill of lading documentation, and customs entry records you requested.";
+        }
+      }
+
+      // CRITICAL INVARIANT: Clean any false "I attached" statements if 0 attachments were actually created
+      const sanitizedClientText = cleanFalseAttachmentClaims(clientReplyText, createdAttachments.length);
+
+      // Build Grounded Source Trace for Client Response
+      const clientTrace = buildSourceTrace({
+        projectId: projectId || "PRJ-324",
+        moduleId: moduleId || "MA-324-01",
+        queryOrContext: messageBodyText,
+        actingRole: "CLIENT_EXEC",
+        channel: "CLIENT_ENGAGEMENT",
+        claims: [
+          {
+            claimId: `CLM-CLI-${Date.now().toString().slice(-4)}`,
+            claimText: "Levant takes contractual title under purchase agreement terms and transmits corporate DUNS for electronic customs entry clearance.",
+            classification: "CLIENT_EVIDENCE",
+            supportingSourceIds: ["SRC-MA324-01-FDALAW"],
+            supportingDocumentIds: createdAttachments.map(a => a.documentId || a.id),
+            evidenceSnippet: sanitizedClientText.slice(0, 150),
+            reasoningRationale: "Client executive perspective strictly grounded in canonical purchase terms and customs filings.",
+            confidenceState: "SUPPORTED",
+            authorityLevel: "LEVEL_3_CANONICAL_CASE_EVIDENCE"
+          }
+        ],
+        overallConfidence: "SUPPORTED",
+        unknownsOrGaps: []
+      });
+
+      const clientMsg: any = {
+        id: clientMsgId,
+        roomId,
+        projectId: projectId || "PRJ-324",
+        moduleId: moduleId || "MA-324-01",
+        caseId: caseId || "CASE-LEVANT-01",
+        sessionId: resolvedSessionId,
+        channel: "CLIENT_ENGAGEMENT",
+        senderId: "CON-01",
+        senderName: "Elena Rostova & Marco Bellini",
+        senderRole: "CLIENT_EXEC",
+        senderTeam: "CLIENT_TEAM",
+        text: sanitizedClientText,
+        messageType: "CLIENT_ANSWER",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isoTimestamp: new Date().toISOString(),
+        consultingCategory: consultingCategory || "SCOPE",
+        attachments: createdAttachments,
+        attachmentIds: createdAttachments.map(a => a.id),
+        sourceTrace: clientTrace,
+        sourceTraceId: clientTrace.traceId
+      };
+
+      getStoreCollection("case_messages").set(clientMsgId, clientMsg);
+      getStoreCollection("case_source_traces").set(clientTrace.traceId, clientTrace);
+      if (db) {
+        try {
+          await setDoc(doc(db, "case_source_traces", clientTrace.traceId), clientTrace);
+          await setDoc(doc(db, "case_messages", clientMsgId), clientMsg);
+        } catch (e) {
+          console.warn("[Firestore] case_messages client auto-response write warning:", e);
+        }
+      }
+      autoResponses.push(clientMsg);
+    }
+
+    // SCENARIO B: Participant posted in INTERNAL_CBRIDGE channel -> Trigger Grounded AI Coach evaluation, mentoring, and regulatory guidance
+    if (channel === "INTERNAL_CBRIDGE" && actingRole !== "AI_COACH") {
+      // 1. Gather all learner-visible client statements strictly in the active session transcript
+      let clientMessagesInSession = Array.from(getStoreCollection("case_messages").values())
+        .filter((m: any) =>
+          m.sessionId === resolvedSessionId &&
+          m.active !== false &&
+          m.status !== "SUPERSEDED" &&
+          m.auditStatus !== "DUPLICATE_SYSTEM_GENERATION" &&
+          m.channel === "CLIENT_ENGAGEMENT" &&
+          (m.senderRole === "CLIENT_EXEC" || m.senderTeam === "CLIENT_TEAM")
+        );
+
+      if (db) {
+        try {
+          const msgDocs = await fetchCollectionDocs("case_messages");
+          const filteredMsgs = msgDocs.filter((m: any) =>
+            m.sessionId === resolvedSessionId &&
+            m.active !== false &&
+            m.status !== "SUPERSEDED" &&
+            m.auditStatus !== "DUPLICATE_SYSTEM_GENERATION" &&
+            m.channel === "CLIENT_ENGAGEMENT" &&
+            (m.senderRole === "CLIENT_EXEC" || m.senderTeam === "CLIENT_TEAM")
+          );
+          if (filteredMsgs.length > 0) {
+            const msgMap = new Map();
+            [...clientMessagesInSession, ...filteredMsgs].forEach((m: any) => msgMap.set(m.id, m));
+            clientMessagesInSession = Array.from(msgMap.values());
+          }
+        } catch (e) {
+          console.warn("[Firestore] error syncing client transcript for coach:", e);
+        }
+      }
+
+      // 2. Strict Active-Session Disclosure Source of Truth:
+      // A case document is DISCLOSED if:
+      // (a) the CURRENT activeSessionId contains a persisted disclosure event or message attachment, OR
+      // (b) the document is directly attached by the user in this message.
+      const activeSessionDisclosedAttIds = new Set<string>();
+
+      // Check current message attachments
+      if (Array.isArray(sanitizedAttachments)) {
+        sanitizedAttachments.forEach((a: any) => {
+          const attId = a?.id || a?.attachmentId;
+          if (attId) activeSessionDisclosedAttIds.add(attId);
+        });
+      }
+
+      clientMessagesInSession.forEach((m: any) => {
+        // Initial opening message never contains disclosed case documents
+        if (m.messagePurpose !== "INITIAL_CLIENT_OPENING") {
+          if (Array.isArray(m.attachmentIds)) {
+            m.attachmentIds.forEach((id: string) => {
+              if (id) activeSessionDisclosedAttIds.add(id);
+            });
+          }
+          if (Array.isArray(m.attachments)) {
+            m.attachments.forEach((a: any) => {
+              const attId = a?.id || a?.attachmentId;
+              if (attId) activeSessionDisclosedAttIds.add(attId);
+            });
+          }
+        }
+      });
+
+      // Also check all session messages in room
+      const allSessionMessages = Array.from(getStoreCollection("case_room_messages").values()).filter(
+        (m: any) => m.sessionId === resolvedSessionId
+      );
+      allSessionMessages.forEach((m: any) => {
+        if (Array.isArray(m.attachmentIds)) {
+          m.attachmentIds.forEach((id: string) => { if (id) activeSessionDisclosedAttIds.add(id); });
+        }
+        if (Array.isArray(m.attachments)) {
+          m.attachments.forEach((a: any) => {
+            const attId = a?.id || a?.attachmentId;
+            if (attId) activeSessionDisclosedAttIds.add(attId);
+          });
+        }
+      });
+
+      let allSessionAttachments: any[] = [];
+      const storeCaseAtts = Array.from(getStoreCollection("case_attachments").values());
+      if (activeSessionDisclosedAttIds.size > 0) {
+        allSessionAttachments = storeCaseAtts.filter((a: any) =>
+          (activeSessionDisclosedAttIds.has(a.id) || activeSessionDisclosedAttIds.has(a.attachmentId)) &&
+          a.auditStatus === "ACTIVE"
+        );
+      }
+
+      // Add any attachments directly passed in this message if not already in allSessionAttachments
+      if (Array.isArray(sanitizedAttachments)) {
+        sanitizedAttachments.forEach((sa: any) => {
+          const sId = sa?.id || sa?.attachmentId;
+          if (sId && !allSessionAttachments.some((x: any) => (x.id === sId || x.attachmentId === sId))) {
+            allSessionAttachments.push(sa);
+          }
+        });
+      }
+
+      // Canonical Deduplication of Disclosed Attachments with Physical Binary Resolution
+      const seenDocKeys = new Set<string>();
+      const deduplicatedSessionAttachments: any[] = [];
+      for (const att of allSessionAttachments) {
+        const attId = att.id || att.attachmentId;
+        const binaryEntry = attId ? caseAttachmentBinaryStore.get(attId) : null;
+        const fileBuffer = binaryEntry?.buffer || att.fileBuffer;
+        const fileHash = fileBuffer ? crypto.createHash("sha256").update(fileBuffer).digest("hex") : (att.fileHash || att.contentHash || "");
+        const actualSize = fileBuffer ? fileBuffer.length : (att.fileSize || 0);
+
+        const primaryKey = fileHash || att.canonicalDocumentId || att.documentId || `${(att.originalFileName || att.title || "").trim().toLowerCase()}_${actualSize}`;
+        if (!seenDocKeys.has(primaryKey)) {
+          seenDocKeys.add(primaryKey);
+          deduplicatedSessionAttachments.push({
+            ...att,
+            attachmentId: attId,
+            documentId: fileHash ? `DOC-HASH-${fileHash.slice(0, 16)}` : (att.documentId || attId),
+            canonicalDocumentId: fileHash ? `DOC-HASH-${fileHash.slice(0, 16)}` : (att.canonicalDocumentId || att.documentId || attId),
+            fileBuffer,
+            fileHash,
+            fileSize: actualSize,
+            disclosureStatus: "DISCLOSED",
+            isDisclosed: true
+          });
+        }
+      }
+      allSessionAttachments = deduplicatedSessionAttachments;
+
+      const clientTranscriptStatements = clientMessagesInSession
+        .sort((a: any, b: any) => new Date(a.isoTimestamp || 0).getTime() - new Date(b.isoTimestamp || 0).getTime())
+        .map((m: any) => ({
+          senderRole: m.senderRole,
+          senderName: m.senderName,
+          text: m.text,
+          timestamp: m.timestamp
+        }));
+
+      const resolvedObjective = await resolveActiveObjectiveContext(
+        projectId || "PRJ-324",
+        moduleId || "MA-324-01",
+        caseId || "CASE-LEVANT-01",
+        resolvedSessionId,
+        actingRole
+      );
+
+      const ai = getGeminiClient();
+      const coachGrounded = await generateGroundedCoachResponse({
+        projectId: projectId || "PRJ-324",
+        moduleId: moduleId || "MA-324-01",
+        caseId: caseId || "CASE-LEVANT-01",
+        sessionId: resolvedSessionId,
+        channel: "INTERNAL_CBRIDGE",
+        actingRole,
+        learnerMessage: messageBodyText,
+        disclosedAttachments: allSessionAttachments,
+        learnerVisibleClientStatements: clientTranscriptStatements,
+        sanitizedAttachments: sanitizedAttachments && sanitizedAttachments.length > 0 ? sanitizedAttachments : allSessionAttachments,
+        activeCaseFacts: activeCase,
+        geminiClient: ai,
+        activeObjective: resolvedObjective
+      });
+
+      const coachMsgId = `MSG-COACH-${Date.now().toString().slice(-6)}`;
+      const coachMsg = {
+        id: coachMsgId,
+        roomId,
+        projectId: projectId || "PRJ-324",
+        moduleId: moduleId || "MA-324-01",
+        caseId: caseId || "CASE-LEVANT-01",
+        sessionId: resolvedSessionId,
+        channel: "INTERNAL_CBRIDGE",
+        senderId: "AI-COACH",
+        senderName: "C-Bridge AI Coach",
+        senderRole: "AI_COACH",
+        senderTeam: "CBRIDGE_TEAM",
+        text: coachGrounded.coachReplyText,
+        messageType: "AI_COACH_TIP",
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isoTimestamp: new Date().toISOString(),
+        consultingCategory: consultingCategory || "SUPPLIER_VERIFICATION",
+        coachEvaluation: coachGrounded.coachEvaluation,
+        sourceTrace: coachGrounded.sourceTrace,
+        sourceTraceId: coachGrounded.sourceTrace.traceId
+      };
+
+      getStoreCollection("case_messages").set(coachMsgId, coachMsg);
+      getStoreCollection("case_source_traces").set(coachGrounded.sourceTrace.traceId, coachGrounded.sourceTrace);
+      if (db) {
+        try {
+          await setDoc(doc(db, "case_source_traces", coachGrounded.sourceTrace.traceId), coachGrounded.sourceTrace);
+          await setDoc(doc(db, "case_messages", coachMsgId), coachMsg);
+        } catch (e) {
+          console.warn("[Firestore] case_messages coach auto-response write warning:", e);
+        }
+      }
+      autoResponses.push(coachMsg);
+    }
+
+    // Update active session metadata in case_sessions
+    try {
+      const sessionStore = getStoreCollection("case_sessions");

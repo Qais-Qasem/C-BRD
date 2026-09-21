@@ -1,0 +1,129 @@
+C-BRIDGE STUDY PHASE 1A-R — READ-ONLY BOUNDARY FORENSIC REPORT
+
+CANONICAL BASELINE:
+PASS
+
+SOURCE VERSION:
+09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2
+
+BLOCK COUNT:
+96
+
+MODULE 1 START:
+Block 29 (Course Schedule table) and Block 39 (Reading Assignments table)
+
+MODULE 1 END:
+Within the same tables where Module Two begins.
+
+MODULE 1 STRUCTURAL MARKERS:
+"Module One" rows within tables, dates "May 11th - May 17th", "Overview of FSMA", "Proposed Reading Assignments"
+
+MODULE 1 SUBSTANTIVE CANONICAL BLOCKS:
+Block 29 and Block 39
+
+BLOCK 39:
+Contains substantive academic scope: Textbook chapters (1, 2, 3), regulatory focus (21 CFR 1.500, FSVP, Preventive Controls), and lecture topics for Module One.
+
+BLOCK 39 STRUCTURAL OWNERSHIP:
+MODULE 1
+
+CURRENT REQUIREMENT COUNT:
+7
+
+CURRENT REQUIREMENT CLASSIFICATION:
+For each requirement:
+- requirementId: REQ-33F0443D
+- title: Attendance and Login Requirements
+- block anchors: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-47
+- structural classification: COURSE_WIDE_ADMINISTRATIVE_POLICY
+- reason: Found in Block 47 under the global heading "Course Specifics -> Attendance", outside the Module 1 table boundary.
+
+- requirementId: REQ-51758D11
+- title: Discussion Participation
+- block anchors: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-49
+- structural classification: COURSE_WIDE_ADMINISTRATIVE_POLICY
+- reason: Found in Block 49 under the global heading "Participation Through Discussions", outside the Module 1 table boundary.
+
+- requirementId: REQ-A752FB9B
+- title: Assignment Deadlines and Late Work Policy
+- block anchors: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-51, -53, -73
+- structural classification: COURSE_WIDE_ADMINISTRATIVE_POLICY
+- reason: Found across Blocks 51, 53, 73 under headings "Assignments", "Evaluation Methods", and "Late Submissions", governing the entire course lifecycle.
+
+- requirementId: REQ-FBD830E2
+- title: APA Formatting Requirement
+- block anchors: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-53, -63
+- structural classification: COURSE_WIDE_ADMINISTRATIVE_POLICY
+- reason: Found in Blocks 53 and 63 under "Evaluation Methods" and "How to Get Top Grades", applying to all course documents universally.
+
+- requirementId: REQ-7EA1BDEE
+- title: Course Communication Protocol
+- block anchors: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-75
+- structural classification: COURSE_WIDE_ADMINISTRATIVE_POLICY
+- reason: Found in Block 75 under "When contacting the Instructor", universally applicable.
+
+- requirementId: REQ-DFCD3D0C
+- title: Academic Integrity and Originality
+- block anchors: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-78, -79
+- structural classification: COURSE_WIDE_ADMINISTRATIVE_POLICY
+- reason: Found in Blocks 78 and 79 under "Academic Integrity Policy", representing university-wide mandates.
+
+- requirementId: REQ-03C95929
+- title: Religious Observance Notification
+- block anchors: BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-91
+- structural classification: COURSE_WIDE_ADMINISTRATIVE_POLICY
+- reason: Found in Block 91 under "Student Religious Observances", representing university-wide policies.
+
+MODULE_ACADEMIC_REQUIREMENT COUNT:
+0
+
+COURSE_WIDE_ADMINISTRATIVE_POLICY COUNT:
+7
+
+AMBIGUOUS COUNT:
+0
+
+ROOT DEFECT:
+The API endpoint `/api/module-study/analyze-sources` concatenates all 96 blocks of the course syllabus into a single raw text string (`blocksInfo`) without any structural boundary filtering, and passes them to the LLM.
+
+WHY ADMIN POLICIES ENTERED MA-324-01:
+The LLM semantic inference hallucinated that universal course policies applied specifically to Module 1 because it was forced by the generic prompt (`Extract formal Module Requirements for module: MA-324-01`) to extract "requirements" from a document predominantly consisting of universal course rules.
+
+WHY BLOCK 39 WAS OMITTED:
+Block 39 is a table. When flattened into `rawText`, tables often become dense text walls. The LLM overlooked the substantive academic content in the table in favor of explicitly labeled policy headings (e.g., "Attendance", "Grading") that semantically match the word "Requirements" more strongly than subject-matter topics do.
+
+DEFECT GENERICITY:
+GENERIC
+
+MODULE 2+ RISK:
+Extremely high. Because the extraction prompt and pipeline are completely generic and lack block-level slicing, the identical course-wide policies will be mistakenly extracted and duplicated for MA-324-02 and all subsequent modules.
+
+COURSE-LEVEL POLICY STORAGE ALREADY EXISTS:
+PARTIAL
+
+Candidate:
+Sources have a `sourceScope: "COURSE_WIDE"` attribute, but there is no dedicated schema or collection for `course_wide_policies` distinct from `module_requirements_maps`, which are inherently scoped per module.
+
+PRODUCTION CODE PATH RESPONSIBLE:
+`app.post("/api/module-study/analyze-sources")` in `server.ts`
+
+LIKELY PATCH FILES:
+`server.ts`
+
+LIKELY DATA REPAIR REQUIRED:
+YES
+
+PROP-SET-324 USED AS AUTHORITY:
+NO
+
+PHASE 1B ARCHITECTURE MODIFIED:
+NO
+
+PHASE 1C WORK PERFORMED:
+NO
+
+PATCH AUTHORIZED:
+NO
+
+NEXT STEP:
+Return this report for review before any modification.

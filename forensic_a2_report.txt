@@ -1,0 +1,66 @@
+C-BRIDGE STUDY PHASE 1A-R — TABLE-BOUNDARY FORENSIC A2 REPORT
+
+SOURCE VERSION:
+09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2
+
+BLOCK COUNT:
+96
+
+BLOCK 29 STRUCTURE:
+Flattened JSON schema containing { blockId, ordinal, type: "table", rawText }. No internal table metadata (rows, cells, indices, column headers, structural paths) is preserved.
+
+BLOCK 39 STRUCTURE:
+Flattened JSON schema identical to Block 29 containing { blockId, ordinal, type: "table", rawText }. All modules are concatenated into a single sequential raw text string.
+
+BLOCKS 29/39 CONTAIN MULTIPLE MODULES:
+YES
+
+WHOLE-BLOCK MODULE OWNERSHIP SAFE:
+NO
+
+MODULE SUB-BLOCK ANCHOR OPTION:
+C — DETERMINISTIC RAW-TEXT SOURCE SPAN REQUIRED
+
+RECOMMENDED DETERMINISTIC LOCATOR:
+`sourceSpan` (incorporating `startMarker` and `endMarker` substrings, or exact character indices mapping to the module bounds in `rawText`), stored alongside `blockId`.
+
+MODULE 1 BLOCK 29 SLICE:
+Start: "Module OneMay 11th"
+End: Just before "Module Two "
+Text: "Module OneMay 11th – May 17th  Overview of FSMA FSVP Rule for Importers of Food for Humans and Animals:Background; Purpose and Scope; Legal Authority; and Costs and Benefits.FSMA and FSVPThe FSVP processFSVP requirement overview"
+
+MODULE 1 BLOCK 39 SLICE:
+Start: "Module One  Reading:"
+End: Just before "Module TwoReading:"
+Text: "Module One  Reading:Syllabus Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF)TextbookReading: Chapter One: Context FSMA and FSVP Pages P1-13; 1-17Chapter Two: FSVP Process Pages 2-1 to 2-18Chapter Three: Preventive Controls and Produce Safety Pages PCPS1- PCPS 12Overview of FSMA Lecturer: Scott Haskell, DVM, PhDFSVP Rule for Importers of Food for Humans and Animals:Background; Purpose and Scope; Legal Authority; and Costs and Benefits.FSMA and FSVPThe FSVP processFSVP requirement overview"
+
+MODULE 2 BLOCK 29 SLICE:
+Start: "Module Two May 18th"
+End: Just before "Module Three"
+Text: "Module Two May 18th – May 24thHazard Analysis Evaluation and Approval of Foreign SupplierForeign Supplier VerificationReevaluation of Foreign Supplier Performance and Food Risk, and Corrective Actions Who Must Comply?Definitions, Applicability, and Exemptions.Food Safety Plan:Hazard Analysis; Evaluation for Foreign Supplier Approval and Verification; and Foreign Supplier Verification Activities."
+
+MODULE 2 BLOCK 39 SLICE:
+Start: "Module TwoReading:"
+End: Just before "Module ThreeReading:"
+Text: "Module TwoReading:Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF)Chapter 4 Hazard AnalysisPages 4-1 to 4-34Chapter 5- Foreign SupplierPages 5-1 to 5-18Chapter 6-Verification Pages 6-1 to 6-25Hazard Analysis Lecturer: Scott Haskell, DVM, PhDEvaluation and Approval of Foreign SupplierForeign Supplier VerificationReevaluation of Foreign Supplier Performance and Food Risk, and Corrective Actions Who Must Comply?Definitions, Applicability, and Exemptions.Food Safety Plan:Hazard Analysis; Evaluation for Foreign Supplier Approval and Verification; and Foreign Supplier Verification Activities."
+
+COURSE POLICY CONTAMINATION INSIDE MODULE SLICES:
+NO
+
+BLOCK 29 / BLOCK 39 RELATIONSHIP:
+MIXED (Complementary on dates vs readings, but heavily Duplicative on exact lecture topics/bullets).
+
+DUPLICATE-REQUIREMENT RISK:
+High. Both slices share verbatim subject-matter strings (e.g., "Overview of FSMA FSVP Rule for Importers..."). If processed independently, an LLM will likely extract identical academic requirements twice unless the slices are synthesized together or explicitly deduplicated.
+
+EXISTING REQUIREMENT PROVENANCE CAN SUPPORT SUB-BLOCK LOCATOR:
+YES (The `blockAnchors` payload inside Firestore is an untyped JSON array in the backend, allowing safe extension to include an optional `sourceSpan` object without breaking schema).
+
+GENERIC MODULE-BOUNDARY FIX FEASIBLE WITHOUT REBUILDING CANONICAL BLOCKS:
+YES
+
+PATCH AUTHORIZED:
+NO
+
+NEXT STEP:
+Return this report for review.

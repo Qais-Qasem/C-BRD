@@ -1,0 +1,348 @@
+{
+  "entities": {
+    "Invitation": {
+      "title": "Invitation",
+      "description": "Account activation invitation token record",
+      "type": "object",
+      "properties": {
+        "invitationId": { "type": "string" },
+        "memberId": { "type": "string" },
+        "memberName": { "type": "string" },
+        "email": { "type": "string" },
+        "token": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "ACTIVE", "USED", "REVOKED", "EXPIRED"] },
+        "createdAt": { "type": "string" },
+        "expiresAt": { "type": "string" },
+        "usedAt": { "type": "string" },
+        "revokedAt": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "revokedBy": { "type": "string" },
+        "revocationReason": { "type": "string" }
+      },
+      "required": ["invitationId", "memberId", "email", "token", "status", "createdAt"]
+    },
+    "Member": {
+      "title": "Member",
+      "description": "Approved C-Bridge team member record",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "email": { "type": "string" },
+        "accountAccessStatus": { "type": "string" },
+        "accountStatus": { "type": "string" },
+        "linkedUid": { "type": "string" }
+      },
+      "required": ["id", "name"]
+    },
+    "ProjectProposal": {
+      "title": "ProjectProposal",
+      "description": "Member-submitted project proposal for supervisor review",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "title": { "type": "string" },
+        "proposedBy": { "type": "string" },
+        "proposalDate": { "type": "string" },
+        "origin": { "type": "string" },
+        "originalReason": { "type": "string" },
+        "uploadedSources": { "type": "array" },
+        "aiAnalysis": { "type": "object" },
+        "status": { "type": "string" },
+        "husniDecision": { "type": "string" },
+        "decisionDate": { "type": "string" },
+        "modifications": { "type": "string" }
+      },
+      "required": ["id", "title", "proposedBy", "proposalDate", "status"]
+    },
+    "ProjectSource": {
+      "title": "ProjectSource",
+      "description": "Source uploaded or linked within a project source library",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "title": { "type": "string" },
+        "category": { "type": "string" },
+        "description": { "type": "string" },
+        "fileOrUrl": { "type": "string" },
+        "uploadedBy": { "type": "string" },
+        "uploadedAt": { "type": "string" },
+        "protectedMaterialFlag": { "type": "boolean" },
+        "provenance": { "type": "object" }
+      },
+      "required": ["id", "projectId", "title", "category", "uploadedBy"]
+    },
+    "ModuleRequirementsMap": {
+      "title": "ModuleRequirementsMap",
+      "description": "Extracted requirements map for a course module",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "moduleCode": { "type": "string" },
+        "moduleName": { "type": "string" },
+        "objectives": { "type": "array" },
+        "requiredKnowledgeAreas": { "type": "array" },
+        "requiredReading": { "type": "array" },
+        "requiredTasks": { "type": "array" },
+        "assignments": { "type": "array" },
+        "expectedDeliverables": { "type": "array" },
+        "availableMemberTimeHours": { "type": "number" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "projectId", "moduleCode", "moduleName"]
+    },
+    "StudyPackage": {
+      "title": "StudyPackage",
+      "description": "Structured learning record and synthesis package",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "memberId": { "type": "string" },
+        "courseModuleName": { "type": "string" },
+        "moduleObjectives": { "type": "array" },
+        "keyConcepts": { "type": "array" },
+        "memberNotes": { "type": "string" },
+        "importantAiDiscussions": { "type": "array" },
+        "practicalApplications": { "type": "string" },
+        "potentialRelevanceToCBridge": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "projectId", "memberId", "courseModuleName"]
+    },
+    "ConsultingInsight": {
+      "title": "ConsultingInsight",
+      "description": "Derived consulting need or service opportunity",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "observedNeed": { "type": "string" },
+        "recurringInformationNeeds": { "type": "array" },
+        "recurringClientQuestions": { "type": "array" },
+        "recurringDocumentNeeds": { "type": "array" },
+        "serviceOpportunities": { "type": "array" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "projectId", "observedNeed"]
+    },
+    "AssetOpportunity": {
+      "title": "AssetOpportunity",
+      "description": "Identified opportunity for a reusable C-Bridge asset",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "originatingMember": { "type": "string" },
+        "observedNeed": { "type": "string" },
+        "proposedAsset": { "type": "string" },
+        "assetType": { "type": "string" },
+        "problemItSolves": { "type": "string" },
+        "intendedUser": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "projectId", "originatingMember", "proposedAsset", "assetType"]
+    },
+    "AssetBrief": {
+      "title": "AssetBrief",
+      "description": "Specification brief controlling asset creation",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "assetOpportunityId": { "type": "string" },
+        "assetName": { "type": "string" },
+        "assetType": { "type": "string" },
+        "problemItSolves": { "type": "string" },
+        "intendedUser": { "type": "string" },
+        "developmentOwner": { "type": "string" },
+        "supervisor": { "type": "string" },
+        "createdAt": { "type": "string" }
+      },
+      "required": ["id", "assetName", "assetType", "developmentOwner"]
+    },
+    "ProjectAsset": {
+      "title": "ProjectAsset",
+      "description": "Asset in development within a project context",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "assetBriefId": { "type": "string" },
+        "assetName": { "type": "string" },
+        "assetType": { "type": "string" },
+        "version": { "type": "string" },
+        "content": { "type": "string" },
+        "status": { "type": "string" },
+        "author": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "projectId", "assetName", "assetType", "status"]
+    },
+    "CBridgeAssetLibraryRecord": {
+      "title": "CBridgeAssetLibraryRecord",
+      "description": "Approved reusable asset in official C-Bridge Asset Library",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectAssetId": { "type": "string" },
+        "assetName": { "type": "string" },
+        "assetType": { "type": "string" },
+        "version": { "type": "string" },
+        "createdBy": { "type": "string" },
+        "projectOfOrigin": { "type": "string" },
+        "approvedBy": { "type": "string" },
+        "approvalDate": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "assetName", "assetType", "version", "approvedBy"]
+    },
+    "AskSupervisorQuestion": {
+      "title": "AskSupervisorQuestion",
+      "description": "Linked supervisor question from workspace",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "member": { "type": "string" },
+        "projectId": { "type": "string" },
+        "question": { "type": "string" },
+        "timestamp": { "type": "string" },
+        "status": { "type": "string" }
+      },
+      "required": ["id", "member", "projectId", "question", "status"]
+    },
+    "Project": {
+      "title": "Project",
+      "description": "Governed C-Bridge capability development project",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "purpose": { "type": "string" },
+        "businessObjective": { "type": "string" },
+        "scope": { "type": "string" },
+        "outOfScopeBoundaries": { "type": "string" },
+        "supervisor": { "type": "string" },
+        "assignedMembers": { "type": "array" },
+        "startDate": { "type": "string" },
+        "targetDate": { "type": "string" },
+        "currentPhase": { "type": "string" },
+        "status": { "type": "string" },
+        "origin": { "type": "string" },
+        "capabilityDeveloper": { "type": "string" },
+        "projectSponsor": { "type": "string" },
+        "projectProposer": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "createdAt": { "type": "string" },
+        "updatedAt": { "type": "string" }
+      },
+      "required": ["id", "name", "purpose", "supervisor", "status"]
+    },
+    "CaseRoomAttachment": {
+      "title": "CaseRoomAttachment",
+      "description": "Attachment metadata record for Consulting Case Room chat messages",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "moduleId": { "type": "string" },
+        "caseId": { "type": "string" },
+        "sessionId": { "type": "string" },
+        "messageId": { "type": "string" },
+        "channelId": { "type": "string", "enum": ["CLIENT_ENGAGEMENT", "INTERNAL_CBRIDGE"] },
+        "uploadedByMemberId": { "type": "string" },
+        "activeRole": { "type": "string" },
+        "originalFileName": { "type": "string" },
+        "mimeType": { "type": "string" },
+        "fileSize": { "type": "number" },
+        "formattedSize": { "type": "string" },
+        "storageReference": { "type": "string" },
+        "uploadedAt": { "type": "string" },
+        "visibilityScope": { "type": "string", "enum": ["CLIENT_FACING", "INTERNAL_CBRIDGE"] },
+        "processingStatus": { "type": "string", "enum": ["UPLOADING", "PROCESSING", "READY", "FAILED"] },
+        "fileCategory": { "type": "string" },
+        "extractedTextSummary": { "type": "string" },
+        "extractedTextSnippet": { "type": "string" }
+      },
+      "required": ["id", "projectId", "moduleId", "channelId", "originalFileName", "storageReference", "visibilityScope", "processingStatus"]
+    },
+    "ProjectInput": {
+      "title": "ProjectInput",
+      "description": "Source material, syllabus, or direction input for a project",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "projectId": { "type": "string" },
+        "type": { "type": "string" },
+        "title": { "type": "string" },
+        "content": { "type": "string" },
+        "addedBy": { "type": "string" },
+        "timestamp": { "type": "string" }
+      },
+      "required": ["id", "projectId", "type", "title"]
+    }
+  },
+  "firestore": {
+    "/projects/{projectId}": {
+      "schema": "Project",
+      "description": "Stores canonical governed projects"
+    },
+    "/project_inputs/{inputId}": {
+      "schema": "ProjectInput",
+      "description": "Stores project source materials and syllabus inputs"
+    },
+    "/invitations/{invitationId}": {
+      "schema": "Invitation",
+      "description": "Stores user activation invitation tokens and status"
+    },
+    "/members/{memberId}": {
+      "schema": "Member",
+      "description": "Stores team member profile and account status"
+    },
+    "/project_proposals/{proposalId}": {
+      "schema": "ProjectProposal",
+      "description": "Stores member project proposals"
+    },
+    "/project_sources/{sourceId}": {
+      "schema": "ProjectSource",
+      "description": "Stores project sources in Project Source Library"
+    },
+    "/module_requirements_maps/{mapId}": {
+      "schema": "ModuleRequirementsMap",
+      "description": "Stores module requirements maps"
+    },
+    "/study_packages/{packageId}": {
+      "schema": "StudyPackage",
+      "description": "Stores structured study packages"
+    },
+    "/consulting_insights/{insightId}": {
+      "schema": "ConsultingInsight",
+      "description": "Stores consulting development insights"
+    },
+    "/asset_opportunities/{opportunityId}": {
+      "schema": "AssetOpportunity",
+      "description": "Stores asset opportunities"
+    },
+    "/asset_briefs/{briefId}": {
+      "schema": "AssetBrief",
+      "description": "Stores asset briefs"
+    },
+    "/project_assets/{assetId}": {
+      "schema": "ProjectAsset",
+      "description": "Stores project assets in development"
+    },
+    "/asset_library/{libraryAssetId}": {
+      "schema": "CBridgeAssetLibraryRecord",
+      "description": "Stores approved C-Bridge library assets"
+    },
+    "/supervisor_questions/{questionId}": {
+      "schema": "AskSupervisorQuestion",
+      "description": "Stores questions sent to Husni"
+    },
+    "/case_attachments/{attachmentId}": {
+      "schema": "CaseRoomAttachment",
+      "description": "Stores attachment metadata records for Consulting Case Room chat messages"
+    }
+  }
+}

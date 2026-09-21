@@ -1,0 +1,30 @@
+{
+  "id": "STP-463827",
+  "projectId": "PRJ-324",
+  "moduleId": "MA-324-01",
+  "moduleName": "MSU Module 1 — Foundational FSVP Framework, Statutory Authority & Scope",
+  "memberId": "MBR-001",
+  "memberName": "Samar Baydoun",
+  "packageTitle": "Module 1 Complete Study Package: FSVP Statutory Authority & Importer Determination",
+  "createdAt": "2026-09-03T01:54:23.827Z",
+  "sourceReferences": [],
+  "reviewedRequirementsSummary": "Mastered 21 CFR 1.500 Importer Determination criteria, Customs Broker non-liability rules, and Module 1 scope boundaries.",
+  "keyConceptsSynthesized": [
+    "21 CFR 1.500 3-Tier Importer Determination Rule",
+    "Distinction between Customs Form 7501 Importer of Record and FSVP Responsible Importer",
+    "Mandatory UFI / DUNS Port of Entry Filings under 21 CFR 1.509"
+  ],
+  "caseSimulationsCompleted": [
+    {
+      "caseId": "CASE-ACTIVE",
+      "companyName": "Virtual Consulting Simulation",
+      "topicName": "Statutory FSVP Importer Determination for Multi-Tier Specialty Importers",
+      "keyTakeaway": "Successfully uncovered hidden contract ownership through diagnostic questioning and formulated diagnostic decision tree."
+    }
+  ],
+  "assetOpportunitiesProduced": [
+    "FSVP Importer Determination Diagnostic Matrix"
+  ],
+  "memberReflectionNotes": "Module 1 completed with verified grounding in primary statute and practical consulting dialogue.",
+  "status": "COMPLETED_STUDY_PACKAGE"
+}

@@ -1,0 +1,37 @@
+--- server/documentIntelligenceEngine.ts
++++ server/documentIntelligenceEngine.ts
+@@ -165,6 +165,11 @@
+   crossDocumentReferences: string[];
+   isCompoundRequirement: boolean;
+   rawExcerpt: string;
++  normalizedMeaning?: string;
++  logicalStructure?: string;
++  materialQualifiers?: string[];
++  dependencies?: string[];
++  rawSourceText?: string;
+ }
+ 
+ export interface CanonicalDocument {
+@@ -796,7 +801,7 @@
+         factId: \`FACT-\${docId.slice(-6)}-\${factIdx++}\`,
+         documentId: docId,
+         factType: "DOCUMENT_FACT",
+-        statement: p.length > 250 ? p.slice(0, 250) + "..." : p,
++        statement: p, // LOSSLESS: Do not truncate
+         location: {
+           sectionId: sec.sectionId,
+           sectionTitle: sec.heading,
+@@ -809,7 +814,12 @@
+         exceptionsOrQualifiers: /unless|except|subject to/i.test(p) ? ["Contains exceptions/qualifiers"] : [],
+         crossDocumentReferences: [],
+         isCompoundRequirement: hasCompoundCondition,
+-        rawExcerpt: p
++        rawExcerpt: p,
++        rawSourceText: p,
++        normalizedMeaning: p,
++        logicalStructure: hasCompoundCondition ? "COMPOUND_AND_CONDITION" : "SIMPLE_CONDITION",
++        materialQualifiers: /unless|except|subject to/i.test(p) ? ["Preserved material qualifier from raw text"] : [],
++        dependencies: []
+       });
+     }
+   }

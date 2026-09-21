@@ -1,0 +1,116 @@
+{
+  "id": "REQ-MAP-MA-324-01-1788400396945",
+  "projectId": "PRJ-324",
+  "moduleId": "MA-324-01",
+  "status": "DRAFT",
+  "requirements": [
+    {
+      "id": "REQ-82DAE040",
+      "moduleId": "MA-324-01",
+      "title": "Module Overview and Topics",
+      "description": "Study the overview of the FSMA FSVP Rule for Importers of Food for Humans and Animals. Topics include the background, purpose and scope, legal authority, costs and benefits, and the FSVP process and requirements overview.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-29",
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40"
+      ],
+      "subordinateLocators": [
+        {
+          "blockId": "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-29",
+          "startOffset": 126,
+          "endOffset": 354,
+          "sliceHash": "aadc8d8987aa1856b3691946555a48fdccb8f5cf8cc6b8c26c522e0998be08a2",
+          "startMarker": "Module One",
+          "endMarker": "Module Two",
+          "excerpt": "Module OneMay 11th – May 17th  Overview of FSMA FSVP Rule for Importers of Food for Humans and Animals:Background; Purpose and Scope; Legal Authority; and Costs and Benefits.FSMA and FSVPThe FSVP proc..."
+        },
+        {
+          "blockId": "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40",
+          "startOffset": 29,
+          "endOffset": 549,
+          "sliceHash": "d0da288142b27d92d8bb3afda3bbed371e26368d61917efa10e0917c0165326d",
+          "startMarker": "Module One",
+          "endMarker": "Module Two",
+          "excerpt": "Module One  Reading:Syllabus Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF)TextbookReading: Chapter One: Context FSMA and FSVP Pages P1-13; 1-17Chapter Two: FSVP Process P..."
+        }
+      ],
+      "scopeClassification": "MODULE_ACADEMIC_REQUIREMENT",
+      "reviewStatus": "PENDING_MEMBER_REVIEW"
+    },
+    {
+      "id": "REQ-06BB4E0E",
+      "moduleId": "MA-324-01",
+      "title": "Participant Manual and Syllabus Reading",
+      "description": "Read the Syllabus and the Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF).",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40"
+      ],
+      "subordinateLocators": [
+        {
+          "blockId": "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40",
+          "startOffset": 29,
+          "endOffset": 549,
+          "sliceHash": "d0da288142b27d92d8bb3afda3bbed371e26368d61917efa10e0917c0165326d",
+          "startMarker": "Module One",
+          "endMarker": "Module Two",
+          "excerpt": "Module One  Reading:Syllabus Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF)TextbookReading: Chapter One: Context FSMA and FSVP Pages P1-13; 1-17Chapter Two: FSVP Process P..."
+        }
+      ],
+      "scopeClassification": "MODULE_ACADEMIC_REQUIREMENT",
+      "reviewStatus": "PENDING_MEMBER_REVIEW"
+    },
+    {
+      "id": "REQ-CDC01868",
+      "moduleId": "MA-324-01",
+      "title": "Textbook Readings",
+      "description": "Complete textbook readings for Chapter One: Context FSMA and FSVP (Pages P1-13; 1-17); Chapter Two: FSVP Process (Pages 2-1 to 2-18); and Chapter Three: Preventive Controls and Produce Safety (Pages PCPS1- PCPS 12).",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40"
+      ],
+      "subordinateLocators": [
+        {
+          "blockId": "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40",
+          "startOffset": 29,
+          "endOffset": 549,
+          "sliceHash": "d0da288142b27d92d8bb3afda3bbed371e26368d61917efa10e0917c0165326d",
+          "startMarker": "Module One",
+          "endMarker": "Module Two",
+          "excerpt": "Module One  Reading:Syllabus Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF)TextbookReading: Chapter One: Context FSMA and FSVP Pages P1-13; 1-17Chapter Two: FSVP Process P..."
+        }
+      ],
+      "scopeClassification": "MODULE_ACADEMIC_REQUIREMENT",
+      "reviewStatus": "PENDING_MEMBER_REVIEW"
+    },
+    {
+      "id": "REQ-AB6E4CEF",
+      "moduleId": "MA-324-01",
+      "title": "FSMA Lecture",
+      "description": "Attend or review the Overview of FSMA lecture delivered by Scott Haskell, DVM, PhD.",
+      "provenance": "CANONICAL_SYLLABUS",
+      "sourceVersionId": "09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2",
+      "blockAnchors": [
+        "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40"
+      ],
+      "subordinateLocators": [
+        {
+          "blockId": "BLK-09f6ac83a1101e4dd6e0e45817c7a973824facabbbcf1b6f208eb75fadf0cbb2-40",
+          "startOffset": 29,
+          "endOffset": 549,
+          "sliceHash": "d0da288142b27d92d8bb3afda3bbed371e26368d61917efa10e0917c0165326d",
+          "startMarker": "Module One",
+          "endMarker": "Module Two",
+          "excerpt": "Module One  Reading:Syllabus Foreign Supplier Verification Programs Version 1.1 Participant Manual (PDF)TextbookReading: Chapter One: Context FSMA and FSVP Pages P1-13; 1-17Chapter Two: FSVP Process P..."
+        }
+      ],
+      "scopeClassification": "MODULE_ACADEMIC_REQUIREMENT",
+      "reviewStatus": "PENDING_MEMBER_REVIEW"
+    }
+  ],
+  "sourceIds": [],
+  "customFocus": ""
+}

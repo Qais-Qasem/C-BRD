@@ -1,0 +1,6 @@
+{
+  "name": "C-BRIDGE - Regulatory Consulting Operating Platform",
+  "description": "Executive & Member Operating Platform for Regulatory Consulting, FSVP Compliance, Governance & QA Document Control.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

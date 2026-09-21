@@ -1,0 +1,472 @@
+app.get("/api/case-room/data/:projectId/:moduleId", async (req: any, res: any) => {
+  try {
+    let { projectId, moduleId } = req.params;
+    if (moduleId === "MA-324-01" || projectId === "PRJ-FSVP-01" || !projectId) {
+      projectId = "PRJ-324";
+    }
+    const actingRole = (req.query.actingRole as string) || (req.headers["x-acting-role"] as string) || "SAMAR_CONSULTANT";
+    const db = getDb();
+    const nowIso = new Date().toISOString();
+
+    // Verify token if provided
+    let verifiedUser = { uid: "MBR-001", email: "sbaydoun1@yahoo.com", role: "ACTIVE_MEMBER" };
+    const authHeader = req.headers.authorization || req.headers.Authorization;
+    if (authHeader && typeof authHeader === "string" && authHeader.startsWith("Bearer ")) {
+      const token = authHeader.split("Bearer ")[1]?.trim();
+      if (token) {
+        const verified = await verifyFirebaseIdToken(token);
+        if (verified) {
+          verifiedUser = { uid: verified.uid, email: verified.email, role: "ACTIVE_MEMBER" };
+        }
+      }
+    }
+
+    let clientProfile = BASELINE_VIRTUAL_CLIENT_PROFILE;
+    let provenanceSources = BASELINE_PROVENANCE_SOURCES;
+    let requirements = BASELINE_STRUCTURED_REQUIREMENTS;
+    let messages: any[] = [];
+    let workingTools = BASELINE_CASE_WORKING_TOOLS;
+    let auditLogs: any[] = [];
+    let activeSession: any = null;
+    let activeSessionId = "";
+
+    // Check for active consulting case setup (e.g. Levant Culinary Traditions Corp)
+    const storedCases = await fetchCollectionDocs("consulting_cases");
+    let activeCase = storedCases.find((c: any) => 
+      c.caseId === "CASE-LEVANT-01" || 
+      ((c.status === "CONFIRMED" || c.status === "ACTIVE") && (c.moduleId === moduleId || c.moduleId === "MA-324-01"))
+    );
+
+    // If activeCase has stale Bosphorus name for CASE-LEVANT-01, normalize to canonical Levant Culinary Traditions Corp
+    if (activeCase && (activeCase.caseId === "CASE-LEVANT-01" || activeCase.virtualCompanyName?.includes("Bosphorus"))) {
+      activeCase = {
+        ...activeCase,
+        caseId: "CASE-LEVANT-01",
+        projectId: "PRJ-324",
+        moduleId: moduleId || "MA-324-01",
+        virtualCompanyName: "Levant Culinary Traditions Corp",
+        companyName: "Levant Culinary Traditions Corp",
+        country: "United States (HQ: Chicago, IL)",
+        industry: "Middle Eastern Specialty Groceries & Ingredients",
+        businessModel: "Direct Importer & Wholesale Distributor",
+        importActivities: "Imports tahini, za'atar seasoning blends, pickled turnips, and canned pulses from Lebanon, Jordan, and Egypt.",
+        products: [
+          { name: "Stone-Ground Sesame Tahini", originCountry: "Lebanon", category: "Seed Pastes", highRiskCategory: false, sahcPotential: false, contextNotes: "Background / Cross-Module Context" },
+          { name: "Pickled Turnips with Beet Juice", originCountry: "Jordan", category: "Acidified Preserves", highRiskCategory: false, sahcPotential: false, contextNotes: "Background / Cross-Module Context" },
+          { name: "Traditional Za'atar Blend", originCountry: "Lebanon", category: "Dried Spices & Seasonings", highRiskCategory: false, sahcPotential: false, contextNotes: "Background / Cross-Module Context" },
+          { name: "Extra Virgin Olive Oil", originCountry: "Lebanon / Koura Valley", category: "Cold-Pressed Vegetable Oils", highRiskCategory: false, sahcPotential: false, contextNotes: "Background / Cross-Module Context" }
+        ],
+        clientSituation: "CBP and FDA held a container of specialty goods at Port of Chicago due to mismatched FSVP entity identification between the electronic entry filing and commercial invoices. The client is unsure whether their customs broker, Lebanese freight consolidator, or Levant should be designated.",
+        reasonForSeekingConsulting: "Conduct an FSVP Importer determination analysis under 21 CFR 1.500 across multi-party supply arrangements (foreign packers, Lebanese freight forwarders, and domestic consignees) to establish proper entity reporting and resolve port holds.",
+        clientTeam: [
+          { personaId: "PER-01", name: "Elena Rostova", title: "Chief Executive Officer & Founder", role: "CLIENT_EXEC", avatarBg: "bg-amber-600", perspective: "Direct, commercially focused, concerned about port clearance and supply chain continuity." },
+          { personaId: "PER-02", name: "Marco Bellini", title: "Quality & Technical Operations Director", role: "CLIENT_QA", avatarBg: "bg-emerald-600", perspective: "Detail-oriented, familiar with European certifications, seeking clear verification checklist." }
+        ],
+        status: "CONFIRMED"
+      };
+      getStoreCollection("consulting_cases").set("CASE-LEVANT-01", activeCase);
+      const db = getDb();
+      if (db) {
+        try {
+          await setDoc(doc(db, "consulting_cases", "CASE-LEVANT-01"), activeCase, { merge: true });
+        } catch (e) {
+          console.warn("[Firestore] Sync Levant case repair warning:", e);
+        }
+      }
+    }
+
+    // If no active case in DB, synthesize canonical Levant Culinary Traditions Corp case directly
+    if (!activeCase) {
+      const topic = BASELINE_CONSULTING_PRACTICE_TOPICS[0];
+      const levantCompany = generateDynamicVirtualCompany(topic, "Levant");
+      activeCase = {
+        caseId: "CASE-LEVANT-01",
+        projectId: "PRJ-324",
+        moduleId: moduleId || "MA-324-01",
+        virtualCompanyName: "Levant Culinary Traditions Corp",
+        companyName: "Levant Culinary Traditions Corp",
+        country: "United States (HQ: Chicago, IL)",
+        industry: "Middle Eastern Specialty Groceries & Ingredients",
+        businessModel: "Direct Importer & Wholesale Distributor",
+        importActivities: "Imports tahini, za'atar seasoning blends, pickled turnips, and canned pulses from Lebanon, Jordan, and Egypt.",
+        products: levantCompany.products || [
+          { name: "Stone-Ground Sesame Tahini", originCountry: "Lebanon", category: "Seed Pastes", highRiskCategory: false, sahcPotential: false },
+          { name: "Pickled Turnips with Beet Juice", originCountry: "Jordan", category: "Acidified Preserves", highRiskCategory: false, sahcPotential: false },
+          { name: "Traditional Za'atar Blend", originCountry: "Lebanon", category: "Dried Spices & Seasonings", highRiskCategory: false, sahcPotential: false },
+          { name: "Extra Virgin Olive Oil", originCountry: "Lebanon / Koura Valley", category: "Cold-Pressed Vegetable Oils", highRiskCategory: false, sahcPotential: false }
+        ],
+        clientSituation: "CBP and FDA held a container of specialty goods at Port of Chicago due to mismatched FSVP entity identification between the electronic entry filing and commercial invoices. The client is unsure whether their customs broker, Lebanese freight consolidator, or Levant should be designated.",
+        reasonForSeekingConsulting: "Conduct an FSVP Importer determination analysis under 21 CFR 1.500 across multi-party supply arrangements (foreign packers, Lebanese freight forwarders, and domestic consignees) to establish proper entity reporting and resolve port holds.",
+        clientTeam: [
+          { personaId: "PER-01", name: "Elena Rostova", title: "Chief Executive Officer & Founder", role: "CLIENT_EXEC", avatarBg: "bg-amber-600", perspective: "Direct, commercially focused, concerned about port clearance and supply chain continuity." },
+          { personaId: "PER-02", name: "Marco Bellini", title: "Quality & Technical Operations Director", role: "CLIENT_QA", avatarBg: "bg-emerald-600", perspective: "Detail-oriented, familiar with European certifications, seeking clear verification checklist." }
+        ],
+        status: "CONFIRMED"
+      };
+      getStoreCollection("consulting_cases").set("CASE-LEVANT-01", activeCase);
+    }
+
+    if (activeCase && (activeCase.virtualCompanyName || activeCase.companyName)) {
+      const companyName = activeCase.virtualCompanyName || activeCase.companyName || "Levant Culinary Traditions Corp";
+      const products = activeCase.products && activeCase.products.length > 0
+        ? activeCase.products.map((p: any) => ({
+            name: p.name || p.productName,
+            originCountry: p.originCountry || p.origin || "Lebanon / Jordan",
+            highRiskCategory: Boolean(p.highRiskCategory || p.sahcPotential),
+            sahcPotential: Boolean(p.sahcPotential || p.isSahc),
+            contextNotes: p.contextNotes || "Background / Cross-Module Context"
+          }))
+        : [
+            { name: "Stone-Ground Sesame Tahini", originCountry: "Lebanon", highRiskCategory: false, sahcPotential: false, contextNotes: "Background / Cross-Module Context" },
+            { name: "Pickled Turnips with Beet Juice", originCountry: "Jordan", highRiskCategory: false, sahcPotential: false, contextNotes: "Background / Cross-Module Context" },
+            { name: "Traditional Za'atar Blend", originCountry: "Lebanon", highRiskCategory: false, sahcPotential: false, contextNotes: "Background / Cross-Module Context" },
+            { name: "Extra Virgin Olive Oil", originCountry: "Lebanon / Koura Valley", highRiskCategory: false, sahcPotential: false, contextNotes: "Background / Cross-Module Context" }
+          ];
+
+      const clientContacts = [
+        { id: "PER-01", name: "Elena Rostova", title: "Chief Executive Officer & Founder", role: "CLIENT_EXEC", email: "elena.rostova@levantculinary.com", avatarBg: "bg-amber-600", personalityNotes: "Direct, commercially focused, concerned about port clearance and supply chain continuity." },
+        { id: "PER-02", name: "Marco Bellini", title: "Quality & Technical Operations Director", role: "CLIENT_QA", email: "marco.bellini@levantculinary.com", avatarBg: "bg-emerald-600", personalityNotes: "Detail-oriented, familiar with European certifications, seeking clear verification checklist." }
+      ];
+
+      clientProfile = {
+        companyId: activeCase.caseId || "CASE-LEVANT-01",
+        companyName: companyName,
+        brandIdentity: `${companyName} • Authentic Mediterranean Specialty Imports`,
+        industryCategory: activeCase.industry || "Middle Eastern Specialty Groceries & Ingredients",
+        headquarters: "Chicago, IL (Port of Chicago Entry)",
+        annualImportVolume: "TO BE DISCOVERED",
+        operationalScale: activeCase.businessModel || "Direct Importer & Wholesale Distributor",
+        productLines: products,
+        foreignSupplierFacilities: [
+          { facilityName: "Al-Arz Cedar Olive Press & Mill", country: "Lebanon", productsSupplied: "Extra Virgin Olive Oil", certification: "ISO 22000 / FSSC 22000", fdaRegistered: true },
+          { facilityName: "Jordan Valley Sesame & Tahini Processing Co.", country: "Jordan", productsSupplied: "Stone-Ground Sesame Tahini", certification: "HACCP Certified / Third-party Audited", fdaRegistered: true },
+          { facilityName: "Levantine Heritage Spice & Herb Millers", country: "Lebanon", productsSupplied: "Traditional Za'atar Blend", certification: "GMP Compliant", fdaRegistered: true }
+        ],
+        currentRegulatorySituation: activeCase.clientSituation || "CBP and FDA held a container of specialty goods at Port of Chicago due to mismatched FSVP entity identification between the electronic entry filing and commercial invoices. The client is unsure whether their customs broker, Lebanese freight consolidator, or Levant should be designated.",
+        primaryComplianceRisk: "Conduct an FSVP Importer determination analysis under 21 CFR 1.500 across multi-party supply arrangements (foreign packers, Lebanese freight forwarders, and domestic consignees) to establish proper entity reporting and resolve port holds.",
+        clientExecutiveObjectives: [
+          "Establish statutory classification under 21 CFR 1.500(a) for all foreign consignments",
+          "Clarify customs broker vs statutory FSVP Importer liability on CBP Form 7501",
+          "Resolve port holds and establish correct entity declarations for upcoming entries"
+        ],
+        contacts: clientContacts
+      };
+    }
+
+    if (db) {
+      try {
+        const srcDocs = await fetchCollectionDocs("case_sources");
+        const filteredSrcs = srcDocs.filter((s: any) => (s.projectId === projectId || s.projectId === "PRJ-324" || s.projectId === "PRJ-FSVP-01") && s.moduleId === moduleId);
+        if (filteredSrcs.length > 0) provenanceSources = filteredSrcs as any;
+
+        const reqDocs = await fetchCollectionDocs("case_requirement_analyses");
+        const matchReq = reqDocs.find((r: any) => (r.projectId === projectId || r.projectId === "PRJ-324" || r.projectId === "PRJ-FSVP-01") && r.moduleId === moduleId);
+        if (matchReq) requirements = matchReq as any;
+
+        // Fetch source traces from Firestore
+        const sourceTraceDocs = await fetchCollectionDocs("case_source_traces");
+        const sourceTraceMap = new Map<string, any>();
+        sourceTraceDocs.forEach((st: any) => {
+          if (st.traceId) sourceTraceMap.set(st.traceId, st);
+          if (st.id) sourceTraceMap.set(st.id, st);
+        });
+
+        const requestedSessionId = (req.query.sessionId as string)?.trim();
+        const wfDocs = await fetchCollectionDocs("module_workflow_states");
+        const userWf = wfDocs.find((w: any) => 
+          (w.projectId === projectId || w.projectId === "PRJ-324" || w.projectId === "PRJ-FSVP-01") && 
+          w.moduleId === moduleId && 
+          (w.memberId === verifiedUser.uid || (w.id && w.id.includes(verifiedUser.uid)))
+        ) || wfDocs.find((w: any) => (w.projectId === projectId || w.projectId === "PRJ-324" || w.projectId === "PRJ-FSVP-01") && w.moduleId === moduleId);
+
+        const canonicalWorkflowSessionId = userWf?.activeSessionId;
+        const sessDocs = await fetchCollectionDocs("case_sessions");
+        const targetCaseId = activeCase?.caseId || "CASE-LEVANT-01";
+
+        // Priority 1: Explicit valid session requested by client
+        if (requestedSessionId) {
+          activeSession = sessDocs.find((s: any) => s.id === requestedSessionId);
+        }
+        // Priority 2: Canonical session from user workflow state
+        if (!activeSession && canonicalWorkflowSessionId) {
+          activeSession = sessDocs.find((s: any) => s.id === canonicalWorkflowSessionId);
+        }
+        // Priority 3: Active sessions matching case/project/module, sorted by newest start/update
+        if (!activeSession) {
+          const activeSessList = sessDocs.filter((s: any) => 
+            (s.caseId === targetCaseId || (s.projectId === projectId && s.moduleId === moduleId)) && 
+            s.status === "ACTIVE"
+          );
+          if (activeSessList.length > 0) {
+            activeSessList.sort((a: any, b: any) => {
+              const timeA = new Date(a.startedAt || a.updatedAt || 0).getTime();
+              const timeB = new Date(b.startedAt || b.updatedAt || 0).getTime();
+              return timeB - timeA;
+            });
+            activeSession = activeSessList[0];
+          }
+        }
+
+        if (!activeSession) {
+          const defaultPilotSessionId = `SESS-${targetCaseId}-PILOT-V1`;
+          activeSession = {
+            id: defaultPilotSessionId,
+            caseId: targetCaseId,
+            projectId: projectId || "PRJ-324",
+            moduleId: moduleId || "MA-324-01",
+            roomId: `ROOM-${projectId || "PRJ-324"}-${moduleId || "MA-324-01"}`,
+            clientName: activeCase?.virtualCompanyName || "Levant Culinary Traditions Corp",
+            status: "ACTIVE",
+            purpose: "PILOT_V1",
+            classification: "PILOT_V1",
+            startedAt: nowIso,
+            updatedAt: nowIso,
+            activeHumanRole: verifiedUser.role || "SAMAR_CONSULTANT"
+          };
+          getStoreCollection("case_sessions").set(defaultPilotSessionId, activeSession);
+          if (db) {
+            try {
+              await setDoc(doc(db, "case_sessions", defaultPilotSessionId), activeSession);
+            } catch (e) {
+              console.warn("[Firestore] Auto-create active session warning:", e);
+            }
+          }
+        }
+        activeSessionId = activeSession.id;
+
+        const msgDocs = await fetchCollectionDocs("case_messages");
+        const filteredMsgs = msgDocs.filter((m: any) => {
+          // STRICT EXCLUSION OF SUPERSEDED / DUPLICATE AUDIT RECORDS FROM LEARNER-FACING HYDRATION
+          if (m.isDuplicate === true || m.status === "SUPERSEDED" || m.auditStatus === "DUPLICATE_SYSTEM_GENERATION" || m.active === false) {
+            return false;
+          }
+          // STRICT SESSION INVARIANT: Learner-facing active hydration only returns messages bound to the active session
+          return m.sessionId === activeSessionId;
+        });
+
+        if (filteredMsgs.length > 0) {
+          filteredMsgs.sort((a: any, b: any) => {
+            const timeA = new Date(a.isoTimestamp || a.createdAt || a.timestamp || 0).getTime();
+            const timeB = new Date(b.isoTimestamp || b.createdAt || b.timestamp || 0).getTime();
+            if (!isNaN(timeA) && !isNaN(timeB) && timeA !== timeB) return timeA - timeB;
+            return (a.id || '').localeCompare(b.id || '');
+          });
+
+          // IDEMPOTENCY GUARD: Guarantee AT MOST ONE active initial opening message per case session
+          let foundOpening = false;
+          const deduplicatedMsgs: any[] = [];
+          for (const m of filteredMsgs) {
+            const isInitOpening = m.messagePurpose === "INITIAL_CLIENT_OPENING" || (m.id && m.id.startsWith("MSG-INIT-"));
+            if (isInitOpening) {
+              if (!foundOpening) {
+                foundOpening = true;
+                deduplicatedMsgs.push(m);
+              }
+              // Skip secondary duplicate openings if any exist
+            } else {
+              deduplicatedMsgs.push(m);
+            }
+          }
+
+          messages = deduplicatedMsgs.map((m: any) => {
+            const resolvedTrace = m.sourceTrace || (m.sourceTraceId ? sourceTraceMap.get(m.sourceTraceId) : undefined);
+            return {
+              ...m,
+              projectId: projectId || "PRJ-324",
+              roomId: `ROOM-${projectId || "PRJ-324"}-${moduleId || "MA-324-01"}`,
+              sourceTrace: resolvedTrace || m.sourceTrace
+            };
+          }) as any;
+        } else {
+          // If no messages exist in the active session, check Firestore again by ID before creating
+          const canonicalOpeningId = activeSession.openingMessageId || `MSG-INIT-${activeSessionId.replace('SESS-', '')}`;
+          const clientCompanyName = activeCase?.virtualCompanyName || activeCase?.companyName || clientProfile?.companyName || "Levant Culinary Traditions Corp";
+          
+          let existingOpening = msgDocs.find((d: any) => d.id === canonicalOpeningId || (d.sessionId === activeSessionId && d.messagePurpose === "INITIAL_CLIENT_OPENING" && d.status === "ACTIVE"));
+          
+          if (existingOpening) {
+            messages = [existingOpening];
+          } else {
+            const openingMsg: any = {
+              id: canonicalOpeningId,
+              roomId: `ROOM-${projectId || "PRJ-324"}-${moduleId || "MA-324-01"}`,
+              projectId: projectId || "PRJ-324",
+              moduleId: moduleId || "MA-324-01",
+              caseId: targetCaseId,
+              sessionId: activeSessionId,
+              channel: "CLIENT_ENGAGEMENT",
+              senderId: "PER-01",
+              senderName: "Elena Rostova",
+              senderRole: "CLIENT_EXEC",
+              senderTeam: "CLIENT_TEAM",
+              text: `Hello C-Bridge team. Thank you for meeting with us today. We at ${clientCompanyName} import Mediterranean specialty foods (extra virgin olive oil, artisanal halva, za'atar seasoning blends, and sesame tahini) into the United States and received an FDA inquiry regarding our FSVP obligations. We need your consulting guidance to understand our statutory responsibilities and make sure our supply chain is compliant.`,
+              messageType: "CLIENT_ANSWER",
+              messagePurpose: "INITIAL_CLIENT_OPENING",
+              status: "ACTIVE",
+              auditStatus: "CANONICAL_INITIAL_OPENING",
+              isDuplicate: false,
+              active: true,
+              timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+              isoTimestamp: nowIso,
+              consultingCategory: "SCOPE"
+            };
+            messages = [openingMsg];
+            getStoreCollection("case_messages").set(openingMsg.id, openingMsg);
+            if (db) {
+              try {
+                await setDoc(doc(db, "case_messages", openingMsg.id), openingMsg);
+              } catch (e) {
+                console.warn("[Firestore] case_messages initial opening write warning:", e);
+              }
+            }
+          }
+        }
+
+        const toolDocs = await fetchCollectionDocs("case_tools");
+        const filteredTools = toolDocs.filter((t: any) => (t.projectId === projectId || t.projectId === "PRJ-324" || t.projectId === "PRJ-FSVP-01") && t.moduleId === moduleId);
+        if (filteredTools.length > 0) {
+          workingTools = filteredTools.map((t: any) => ({
+            ...t,
+            projectId: "PRJ-324"
+          })) as any;
+        }
+
+        const auditDocs = await fetchCollectionDocs("case_audit_logs");
+        auditLogs = auditDocs.filter((a: any) => 
+          a.projectId === projectId || 
+          a.projectId === "PRJ-324" || 
+          a.roomId === `ROOM-${projectId}-${moduleId}` ||
+          a.roomId === `ROOM-PRJ-324-${moduleId}`
+        );
+      } catch (e) {
+        console.warn("Error fetching Firestore case room records, using baseline:", e);
+      }
+    }
+
+    // Ensure Canonical Synthetic Documents (MPA & CBP Form 7501) are materialized in repository
+    try {
+      await ensureCanonicalSyntheticDocuments(
+        projectId || "PRJ-324",
+        moduleId || "MA-324-01",
+        "CASE-LEVANT-01",
+        "SESS-MA324-01"
+      );
+      // NOTE: We do NOT auto-bind canonical synthetic docs to initial client messages!
+      // Opening message has 0 attachments. Evidence is progressively disclosed.
+    } catch (synthErr) {
+      console.warn("Canonical synthetic documents check notice:", synthErr);
+    }
+
+    // Load attachments from memory store and Firestore
+    let allAttachments = Array.from(getStoreCollection("case_attachments").values()).filter((a: any) =>
+      (a.projectId === projectId || a.projectId === "PRJ-324" || a.projectId === "PRJ-FSVP-01") && a.moduleId === moduleId
+    );
+    if (db) {
+      try {
+        const attDocs = await fetchCollectionDocs("case_attachments");
+        const filteredAtts = attDocs.filter((a: any) => (a.projectId === projectId || a.projectId === "PRJ-324" || a.projectId === "PRJ-FSVP-01") && a.moduleId === moduleId);
+        if (filteredAtts.length > 0) {
+          const map = new Map();
+          [...allAttachments, ...filteredAtts].forEach((a: any) => map.set(a.id, a));
+          allAttachments = Array.from(map.values());
+        }
+      } catch (e) {
+        console.warn("Error fetching attachments from Firestore:", e);
+      }
+    }
+
+    // Deduplicate attachments across repository by canonical document identity/type (excluding SUPERSEDED)
+    const canonicalAttMap = new Map<string, any>();
+    allAttachments.forEach((att: any) => {
+      if (att.auditStatus === "SUPERSEDED") return;
+      const key = att.documentType ? `TYPE-${att.documentType}` : (att.documentId || att.id);
+      if (!canonicalAttMap.has(key)) {
+        canonicalAttMap.set(key, att);
+      } else {
+        const existing = canonicalAttMap.get(key);
+        // Prefer newer or verified version
+        if (att.version?.includes("Verified") || (att.createdAt && existing.createdAt && att.createdAt > existing.createdAt)) {
+          canonicalAttMap.set(key, att);
+        }
+      }
+    });
+    allAttachments = Array.from(canonicalAttMap.values());
+
+    // STRICT SERVER-SIDE CHANNEL AUTHORIZATION ENFORCEMENT:
+    // If the requesting perspective is any Client Role, strip INTERNAL_CBRIDGE messages and attachments completely!
+    const isClientRole = 
+      actingRole === "CLIENT_EXEC" || 
+      actingRole === "CLIENT_QA" || 
+      actingRole === "CLIENT_COMPLIANCE" || 
+      actingRole === "CLIENT_ROLEPLAY_PARTICIPANT";
+
+    const filteredMessages = isClientRole 
+      ? messages.filter((m: any) => m.channel !== "INTERNAL_CBRIDGE")
+      : messages;
+
+    const filteredAttachments = isClientRole
+      ? allAttachments.filter((a: any) => a.visibilityScope !== "INTERNAL_CBRIDGE" && a.channelId !== "INTERNAL_CBRIDGE")
+      : allAttachments;
+
+    // Attach full attachment metadata to messages (ensuring initial opening message has ZERO attachments)
+    const enrichedMessages = filteredMessages.map((m: any) => {
+      const isInitialOpening = m.messagePurpose === "INITIAL_CLIENT_OPENING" || (m.id && m.id.startsWith("MSG-INIT-"));
+      if (isInitialOpening) {
+        return {
+          ...m,
+          attachments: [],
+          attachmentIds: []
+        };
+      }
+
+      // For normal messages, find attachments linked strictly to this message
+      const msgAttsRaw = filteredAttachments.filter((a: any) => 
+        (a.messageId === m.id && a.messageId !== "") || 
+        (m.attachmentIds && Array.isArray(m.attachmentIds) && m.attachmentIds.includes(a.id))
+      );
+
+      // Deduplicate attachments per message by documentType / identity
+      const dedupMap = new Map<string, any>();
+      msgAttsRaw.forEach((a: any) => {
+        if (a.auditStatus === "SUPERSEDED") return;
+        const key = a.documentType || a.documentId || a.id;
+        if (!dedupMap.has(key)) {
+          dedupMap.set(key, a);
+        }
+      });
+      const msgAtts = Array.from(dedupMap.values());
+
+      return {
+        ...m,
+        attachments: msgAtts,
+        attachmentIds: msgAtts.map(a => a.id)
+      };
+    });
+
+    return res.json({
+      success: true,
+      projectId,
+      moduleId,
+      roomId: `ROOM-${projectId}-${moduleId}`,
+      clientProfile,
+      provenanceSources,
+      requirements,
+      messages: enrichedMessages,
+      attachments: filteredAttachments,
+      workingTools,
+      auditLogs,
+      activeSessionId,
+      session: activeSession,
+      activeUser: verifiedUser,
+      channelSecurityStatus: {
+        actingRole,
+        isClientRole,
+        internalChannelAccess: !isClientRole ? "AUTHORIZED" : "RESTRICTED_BLOCKED"
+      }
+    });
+  } catch (err: any) {
+    console.error("Get case room data error:", err);
+    res.status(500).json({ error: "Failed to load case room data: " + err.message });
+  }
+});
+});
