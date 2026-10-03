@@ -17,8 +17,17 @@ let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let isConfigured = false;
 
+const isLocalMode = (): boolean => {
+  try {
+    return (import.meta as any)?.env?.VITE_LOCAL_MODE === 'true';
+  } catch {
+    return false;
+  }
+};
+
 try {
-  const config = firebaseConfigJson;
+  if (!isLocalMode()) {
+    const config = firebaseConfigJson;
   if (config && config.apiKey && config.projectId) {
     if (!getApps().length) {
       app = initializeApp(config);
@@ -27,6 +36,7 @@ try {
     }
     auth = getAuth(app);
     isConfigured = true;
+  }
   }
 } catch (err) {
   console.warn('Firebase initialization error:', err);

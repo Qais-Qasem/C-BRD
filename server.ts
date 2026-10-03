@@ -101,7 +101,14 @@ app.get("/api/health", (req, res) => {
 
 let firestoreDb: Firestore | null = null;
 
-function getDb(): Firestore {
+function isLocalMode(): boolean {
+  return process.env.LOCAL_MODE === "true";
+}
+
+function getDb(): any {
+  if (isLocalMode()) {
+    return null;
+  }
   if (!firestoreDb) {
     try {
       firestoreDb = new Firestore({
@@ -113,7 +120,7 @@ function getDb(): Firestore {
       console.error("[Server Firestore] Failed to initialize Firestore:", err);
     }
   }
-  return firestoreDb!;
+  return firestoreDb;
 }
 
 async function ensureServerAuthenticated() {
@@ -1012,6 +1019,16 @@ async function verifyFirebaseIdToken(idToken: string): Promise<{ uid: string; em
 
 // Reusable Server-Side Authentication & Authorization Middleware
 async function requireAuthenticatedUser(req: any, res: any, next: any) {
+  if (isLocalMode()) {
+    req.user = {
+      uid: "local-husni",
+      email: "husni.hasan@c-bridge.com",
+      role: "OWNER_ADMIN",
+      memberId: "MBR-002",
+      profile: null
+    };
+    return next();
+  }
   const authHeader = req.headers.authorization || req.headers.Authorization;
   if (!authHeader || typeof authHeader !== "string" || !authHeader.startsWith("Bearer ")) {
     return res.status(401).json({ error: "UNAUTHORIZED: Missing or malformed Authorization header with Bearer token." });
@@ -1218,7 +1235,7 @@ const BLOCKED_GOVERNED_COLLECTIONS = [
 app.get("/api/workspace/records", requireAuthenticatedUser, async (req: any, res: any) => {
   try {
     const db = getDb();
-    if (!db) {
+    if (!db && !isLocalMode()) {
       return res.status(500).json({ error: "Firestore database connection unavailable" });
     }
 
@@ -1238,15 +1255,19 @@ app.get("/api/workspace/records", requireAuthenticatedUser, async (req: any, res
     let projectInputs = await fetchCollectionDocs("project_inputs");
 
     if (projects.length === 0) {
-      for (const bp of BASELINE_PROJECTS) {
-        await setDoc(doc(db, "projects", bp.id), bp, { merge: true });
+      if (db) {
+        for (const bp of BASELINE_PROJECTS) {
+          await setDoc(doc(db, "projects", bp.id), bp, { merge: true });
+        }
       }
       projects = BASELINE_PROJECTS;
     }
 
     if (projectInputs.length === 0) {
-      for (const bi of BASELINE_PROJECT_INPUTS) {
-        await setDoc(doc(db, "project_inputs", bi.id), bi, { merge: true });
+      if (db) {
+        for (const bi of BASELINE_PROJECT_INPUTS) {
+          await setDoc(doc(db, "project_inputs", bi.id), bi, { merge: true });
+        }
       }
       projectInputs = BASELINE_PROJECT_INPUTS;
     }
@@ -1273,7 +1294,9 @@ app.get("/api/workspace/records", requireAuthenticatedUser, async (req: any, res
         createdAt: nowIso,
         updatedAt: nowIso
       };
-      await setDoc(doc(db, "project_proposals", defaultProposal.id), defaultProposal);
+      if (db) {
+        await setDoc(doc(db, "project_proposals", defaultProposal.id), defaultProposal);
+      }
       proposals = [defaultProposal];
     }
 
@@ -1294,7 +1317,9 @@ app.get("/api/workspace/records", requireAuthenticatedUser, async (req: any, res
         createdAt: nowIso,
         updatedAt: nowIso
       };
-      await setDoc(doc(db, "project_sources", defaultSource.id), defaultSource);
+      if (db) {
+        await setDoc(doc(db, "project_sources", defaultSource.id), defaultSource);
+      }
       sources = [defaultSource];
     }
 
@@ -1323,13 +1348,15 @@ app.get("/api/workspace/records", requireAuthenticatedUser, async (req: any, res
         createdAt: nowIso,
         updatedAt: nowIso
       };
-      await setDoc(doc(db, "asset_library", defaultLibraryAsset.id), defaultLibraryAsset);
+      if (db) {
+        await setDoc(doc(db, "asset_library", defaultLibraryAsset.id), defaultLibraryAsset);
+      }
       assetLibraryRecords = [defaultLibraryAsset];
     }
 
     return res.json({
       success: true,
-      canonicalSource: `Firestore (${firebaseConfig.firestoreDatabaseId})`,
+      canonicalSource: isLocalMode() ? `Local memory (LOCAL_MODE, no Firestore)` : `Firestore (${firebaseConfig.firestoreDatabaseId})`,
       authenticatedUser: {
         uid: req.user.uid,
         email: req.user.email,
