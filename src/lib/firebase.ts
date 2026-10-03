@@ -19,10 +19,16 @@ let isConfigured = false;
 
 const isLocalMode = (): boolean => {
   try {
-    return (import.meta as any)?.env?.VITE_LOCAL_MODE === 'true';
+    if ((import.meta as any)?.env?.VITE_LOCAL_MODE === 'true') return true;
+    // Automatic fallback: production runs on *.run.app, so localhost always means local dev.
+    if (typeof window !== 'undefined') {
+      const host = window.location.hostname;
+      if (host === 'localhost' || host === '127.0.0.1' || host === '0.0.0.0') return true;
+    }
   } catch {
-    return false;
+    // ignore
   }
+  return false;
 };
 
 try {
